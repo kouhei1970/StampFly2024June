@@ -500,7 +500,7 @@ void get_command(void)
   }
 
   // flip button check
-  if (Flip_flag == 0)
+  if (Flip_flag == 0 && Throttle_control_mode == 0)
   {
     Flip_flag = get_flip_button();
   }
