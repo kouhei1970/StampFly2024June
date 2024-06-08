@@ -5,3 +5,7 @@
 .vscode/ipch
 .vscode
 .DS_Store
+src/.DS_Store
+lib/.DS_Store
+include/.DS_Store
+build/.DS_Store
