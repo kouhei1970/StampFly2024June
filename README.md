@@ -18,7 +18,7 @@
 初めて飛ばす時は、ピアリング（ペアリング）をしてください。
 - ATOMJoyの液晶パネルを押しながらスイッチを入れる
 - StampFlyに電池を接続する
-- AtomFlyの液晶パネルの表示が変わったらピアリング完了
+- AtomJoyの液晶パネルの表示が変わったらピアリング完了
 ### 手動での飛ばし方(スタビライズモード)
 - デフォルトではモード２です。以下はモード２での説明です。モード３では左右反対です
 - デフォルトでスタビライズモードです。姿勢を自動的に保ちます
@@ -75,7 +75,7 @@
 Pairing is required when flying for the first time:
 - Press and hold the LCD panel button on ATOMJoy while turning it on.
 - Connect the battery to StampFly.
-- When the display on the ATOMFly LCD panel changes, pairing is complete.
+- When the display on the ATOMJoy LCD panel changes, pairing is complete.
 
 ### Manual Flying (Stabilize Mode)
 - The default is Mode 2. The following instructions are for Mode 2. In Mode 3, left and right controls are reversed.
