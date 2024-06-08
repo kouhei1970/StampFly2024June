@@ -5,7 +5,6 @@
 - 専用充電器を用いて充電してください
 - 膨らんだ場合は、塩水等につけて１週間ほどおき完全に放電してから、お住まいの自治体に処理方法を問い合わせてください
 - StampFlyに電池を差し間違えると回路が焼損し、電池も発火の危険がありますので慎重に差し込んでください
-
 ### 安全メガネの着用
 - プロペラを覗き込むような場合や、プロペラが緩くすぐ外れるような場合はプロペラが飛んで目に入り失明する恐れがありますから、安全メガネを着用してください。
 
@@ -55,28 +54,23 @@
 # StampFly Operation Manual
 
 ## Flying Safely
-
 ### Battery Management
 - Use the dedicated charger for charging.
 - If the battery swells, submerge it in saltwater for about a week to fully discharge it, then consult your local municipality for disposal methods.
 - Be cautious when inserting the battery into the StampFly. Incorrect insertion can damage the circuit and pose a fire hazard.
-
 ### Wearing Safety Glasses
 - When inspecting the propeller or if the propeller is loose, wear safety glasses to prevent potential eye injury from a detached propeller.
 
 ## How to Use
-
 ### Inserting the Battery
 - Insert the battery into both ATOMJoy and StampFly.
 - Ensure the terminals are aligned correctly.
 - Misaligning the battery adapter and the terminal on the StampFly can cause smoke, charring, or a potential fire hazard.
-
 ### Peering (Pairing)
 Pairing is required when flying for the first time:
 - Press and hold the LCD panel button on ATOMJoy while turning it on.
 - Connect the battery to StampFly.
 - When the display on the ATOMJoy LCD panel changes, pairing is complete.
-
 ### Manual Flying (Stabilize Mode)
 - The default is Mode 2. The following instructions are for Mode 2. In Mode 3, left and right controls are reversed.
 - The default mode is Stabilize Mode, which automatically maintains posture.
@@ -87,15 +81,12 @@ Pairing is required when flying for the first time:
 - Moving the left stick left or right rotates the drone in that direction.
 - Moving the right stick forward, backward, left, or right moves the drone in that direction.
 - The degree of tilt of the drone corresponds to the amount of deflection of the right stick.
-
 ### Performing a Flip
 - To perform an automatic flip, maintain a steady hover and push down the right stick.
-
 ### Acro Mode
 - Press the right button on the front of ATOMJoy to switch to Acro Mode. Press again to return to Stabilize Mode. You can check the mode on the ATOMJoy LCD screen.
 - Acro Mode does not automatically maintain posture. You need to manually control the posture.
 - The drone rotates at a speed proportional to the deflection of the right stick. Returning the stick to neutral stops the rotation. However, the tilt remains and must be corrected manually.
-
 ### Altitude Hold Mode (Under Development)
 - StampFly is always under development, and altitude control is not yet complete.
 - When landed, press the left button on the front of ATOMJoy once to enter Altitude Hold Mode.
@@ -105,11 +96,9 @@ Pairing is required when flying for the first time:
 - Altitude Hold Mode changes altitude slowly and cannot make rapid altitude changes.
 - Changes in the height of the ground will cause the drone to adjust altitude accordingly.
 - Sudden altitude changes can cause instability or a reset, resulting in a crash.
-
 ### Mode 3
 - The developer's favorite mode.
 - Press and hold the left button on the front of ATOMJoy while turning it on to enter Mode 3. This mode cannot be changed until the switch is turned off.
 - In Mode 3, the left and right stick controls of Mode 2 are reversed. However, the functions of the front buttons do not change.
-
 ### Impact Stop Function
 - The motors automatically stop when a significant impact is detected.
