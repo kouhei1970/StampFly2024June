@@ -36,6 +36,8 @@
 - 右のスティックの倒した量に応じて機体が傾きます
 - 再度、左のスティックを押し込むとDisArmingとなりモータが停止しLEDがイルミネーション状態に戻ります
 - 飛行中に、左のスティックを押し込むとモータが止まり落下しますので注意してください
+### 電池切れサイン
+- LEDの色が水色になったら電池切れサインです。もうしばらくは飛べますが、続けるとリセットがかかり落下します。電池を充電しましょう
 ### 宙返り
 - 空中に静止したホバリング状態を維持して、右のスティックを押し込むと自動的に宙返りをします
 ### アクロモード
@@ -103,6 +105,9 @@ Pairing is required when flying for the first time:
 - Pressing the left stick again disarms the motors and the LED returns to the illumination state.
 - Be careful, as pressing the left stick during flight will stop the motors and cause the drone to fall.
 
+### Battery Low Sign
+- If the LED turns light blue, it indicates a low battery. The drone can still fly for a while, but it will reset and fall if you continue. Charge the battery promptly.
+
 ### Performing a Flip
 - To perform an automatic flip, maintain a steady hover and push down the right stick.
 
@@ -129,4 +134,5 @@ Pairing is required when flying for the first time:
 
 ### Impact Stop Function
 - The motors automatically stop when a significant impact is detected.
+
 
