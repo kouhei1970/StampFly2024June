@@ -1,13 +1,15 @@
-//Lesson 0
+//
+// StampFly Flight Control Main Module
+//
+// Desigend by Kouhei Ito 2023~2024
+//
+
 #include "flight_control.hpp"
 #include "rc.hpp"
 #include "pid.hpp"
 #include "sensor.hpp"
 #include "led.hpp"
 #include "telemetry.hpp"
-
-//#define DEBUG
-//#define TEST
 
 //モータPWM出力Pinのアサイン
 //Motor PWM Pin
@@ -37,60 +39,44 @@ float Control_period = 0.0025f;//400Hz
 
 //PID Gain
 //Rate control PID gain
-const float Roll_rate_kp = 0.6f;//0.6f
-const float Roll_rate_ti = 0.7f;//0.7f
-const float Roll_rate_td = 0.01;//0.01f
-const float Roll_rate_eta = 0.125f;//0.125f
+const float Roll_rate_kp = 0.6f;
+const float Roll_rate_ti = 0.7f;
+const float Roll_rate_td = 0.01;
+const float Roll_rate_eta = 0.125f;
 
-const float Pitch_rate_kp = 0.75f;//0.75f
-const float Pitch_rate_ti = 0.7f;//0.7f
-const float Pitch_rate_td = 0.025f;//0.025f
-const float Pitch_rate_eta = 0.125f;//0.125f
+const float Pitch_rate_kp = 0.75f;
+const float Pitch_rate_ti = 0.7f;
+const float Pitch_rate_td = 0.025f;
+const float Pitch_rate_eta = 0.125f;
 
-const float Yaw_rate_kp = 3.0f;//3.0f->2.0
-const float Yaw_rate_ti = 0.8f;//0.8f
-const float Yaw_rate_td = 0.01f;//0.01f
-const float Yaw_rate_eta = 0.125f;//0.125f
+const float Yaw_rate_kp = 3.0f;
+const float Yaw_rate_ti = 0.8f;
+const float Yaw_rate_td = 0.01f;
+const float Yaw_rate_eta = 0.125f;
 
 //Angle control PID gain
-const float Rall_angle_kp = 8.0f;//8.0f
-const float Rall_angle_ti = 4.0f;//4.0f
-const float Rall_angle_td = 0.04f;//0.04f
-const float Rall_angle_eta = 0.125f;//0.125f
+const float Rall_angle_kp = 8.0f;
+const float Rall_angle_ti = 4.0f;
+const float Rall_angle_td = 0.04f;
+const float Rall_angle_eta = 0.125f;
 
-const float Pitch_angle_kp = 8.0f;//8.0f
-const float Pitch_angle_ti = 4.0f;//4.0f
-const float Pitch_angle_td = 0.04f;//0.04f
-const float Pitch_angle_eta = 0.125f;//0.125f
+const float Pitch_angle_kp = 8.0f;
+const float Pitch_angle_ti = 4.0f;
+const float Pitch_angle_td = 0.04f;
+const float Pitch_angle_eta = 0.125f;
 
 //Altitude control PID gain
-const float alt_kp = 0.65f;//2/10
-const float alt_ti = 200.0f;//100
-const float alt_td = 0.0f;//0.4->0.8->0.2
+const float alt_kp = 0.65f;
+const float alt_ti = 200.0f;
+const float alt_td = 0.0f;
 const float alt_eta = 0.125f;
 const float alt_period = 0.0333;
 
 const float Thrust0_nominal = 0.63;
-const float z_dot_kp = 0.15f;//0.085
-const float z_dot_ti = 13.5f;//2.0->15->14
-const float z_dot_td = 0.005f;//0.001->0.01->0.005
+const float z_dot_kp = 0.15f;
+const float z_dot_ti = 13.5f;
+const float z_dot_td = 0.005f;
 const float z_dot_eta = 0.125f;
-
-/*
-//SoSo
-const float alt_kp = 1.0f;//2/10
-const float alt_ti = 200.0f;//100
-const float alt_td = 0.4f;
-const float alt_eta = 0.125f;
-const float alt_period = 0.0333;
-
-const float Thrust0_nominal = 0.63;
-const float z_dot_kp = 0.15f;//0.085
-const float z_dot_ti = 13.0f;//2.0->15->14
-const float z_dot_td = 0.0f;
-const float z_dot_eta = 0.125f;
-
-*/
 
 //Times
 volatile float Elapsed_time=0.0f;
@@ -133,7 +119,7 @@ volatile float Roll_angle_command=0.0f, Pitch_angle_command=0.0f, Yaw_angle_comm
 volatile float Roll_angle_offset=0.0f, Pitch_angle_offset=0.0f, Yaw_angle_offset=0.0f;  
 volatile float Elevator_center=0.0f, Aileron_center=0.0f, Rudder_center=0.0f;
 
-//Machine state
+//Machine state & flag
 float Timevalue=0.0f;
 uint8_t Mode = INIT_MODE;
 uint8_t Control_mode = ANGLECONTROL;
@@ -148,7 +134,7 @@ volatile uint8_t Angle_control_flag = 0;
 uint8_t Stick_return_flag = 0;
 uint8_t Throttle_control_mode = 0;
 
-//flip
+//for flip
 float FliRoll_rate_time = 2.0;
 uint8_t Flip_flag = 0;
 uint16_t Flip_counter = 0; 
@@ -196,6 +182,8 @@ void motor_stop(void);
 uint8_t judge_mode_change(void);
 uint8_t get_arming_button(void);
 uint8_t get_flip_button(void);
+void reset_rate_control(void);
+void reset_angle_control(void);
 
 //割り込み関数
 //Intrupt function
@@ -259,11 +247,9 @@ void loop_400Hz(void)
   Interval_time = Elapsed_time - Old_Elapsed_time;
   Timevalue+=0.0025f;
   
-
   //Read Sensor Value
   sense_time = sensor_read();
   uint32_t cs_time = micros();
-
 
   //LED Drive
   led_drive();
@@ -312,7 +298,6 @@ void loop_400Hz(void)
 
     //Rate Control
     rate_control();
-
   }
   else if(Mode == PARKING_MODE)
   {
@@ -331,16 +316,12 @@ void loop_400Hz(void)
     Thrust_filtered.reset();
   }
 
-  //USBSerial.printf("%d\n\r", Mode);
-
-  //Telemetry
+  //// Telemetry
   //telemetry400();
   //telemetry();
 
   uint32_t ce_time = micros();
-  //if(Telem_cnt == 1)Dt_time = D_time - E_time;
-  Dt_time = ce_time - cs_time;
-  
+  Dt_time = ce_time - cs_time;  
   //End of Loop_400Hz function
 }
 
@@ -364,7 +345,6 @@ uint8_t judge_mode_change(void)
       state = 1;
     }
   }
-  //USBSerial.printf("%d %d\n\r", state, LockMode);
   return state;
 }
 
@@ -393,8 +373,6 @@ void control_init(void)
   p_pid.set_parameter(Roll_rate_kp, Roll_rate_ti, Roll_rate_td, Roll_rate_eta, Control_period);//Roll rate control gain
   q_pid.set_parameter(Pitch_rate_kp, Pitch_rate_ti, Pitch_rate_td, Pitch_rate_eta, Control_period);//Pitch rate control gain
   r_pid.set_parameter(Yaw_rate_kp, Yaw_rate_ti, Yaw_rate_td, Yaw_rate_eta, Control_period);//Yaw rate control gain
-  //Roll P gain を挙げてみて分散が減るかどうか考える
-  //Roll Ti を大きくしてみる
 
   //Angle control
   phi_pid.set_parameter  (Rall_angle_kp, Rall_angle_ti, Rall_angle_td, Rall_angle_eta, Control_period);//Roll angle control gain
@@ -516,36 +494,8 @@ void rate_control(void)
   if(rc_isconnected())
   {
     if(Thrust_command/BATTERY_VOLTAGE < Motor_on_duty_threshold)
-    {      
-      FrontRight_motor_duty = 0.0;
-      FrontLeft_motor_duty = 0.0;
-      RearRight_motor_duty = 0.0;
-      RearLeft_motor_duty = 0.0;
-      Duty_fr.reset();
-      Duty_fl.reset();
-      Duty_rr.reset();
-      Duty_rl.reset();
-      motor_stop();
-      p_pid.reset();
-      q_pid.reset();
-      r_pid.reset();
-      alt_pid.reset();
-      z_dot_pid.reset();
-      Roll_rate_reference = 0.0f;
-      Pitch_rate_reference = 0.0f;
-      Yaw_rate_reference = 0.0f;
-      Rudder_center   = Yaw_angle_command;
-      //angle control value reset
-      Roll_rate_reference=0.0f;
-      Pitch_rate_reference=0.0f;
-      phi_pid.reset();
-      theta_pid.reset();
-      phi_pid.set_error(Roll_angle_reference);
-      theta_pid.set_error(Pitch_angle_reference);
-      Flip_flag = 0;
-      Flip_counter = 0;
-      Roll_angle_offset   = 0;
-      Pitch_angle_offset = 0;
+    { 
+      reset_rate_control();
     }
     else
     {
@@ -572,7 +522,6 @@ void rate_control(void)
       if (Alt_flag == 1)
       {
         Thrust_command = (Thrust0 + z_dot_pid.update(z_dot_err, Interval_time))*BATTERY_VOLTAGE;
-        //USBSerial.printf("Thrust0=%f\n\r", Thrust0);
       }
 
       //Motor Control
@@ -618,6 +567,12 @@ void rate_control(void)
   }
   else
   {
+    reset_rate_control();
+  }
+}
+
+void reset_rate_control(void)
+{
     motor_stop();
     FrontRight_motor_duty = 0.0;
     FrontLeft_motor_duty = 0.0;
@@ -627,7 +582,6 @@ void rate_control(void)
     Duty_fl.reset();
     Duty_rr.reset();
     Duty_rl.reset();
-    motor_stop();
     p_pid.reset();
     q_pid.reset();
     r_pid.reset();
@@ -648,9 +602,27 @@ void rate_control(void)
     Flip_counter = 0;
     Roll_angle_offset   = 0;
     Pitch_angle_offset = 0;
-  }
 }
 
+void reset_angle_control(void)
+{
+    Roll_rate_reference=0.0f;
+    Pitch_rate_reference=0.0f;
+    phi_pid.reset();
+    theta_pid.reset();
+    phi_pid.set_error(Roll_angle_reference);
+    theta_pid.set_error(Pitch_angle_reference);
+    Flip_flag = 0;
+    Flip_counter = 0;
+    /////////////////////////////////////
+    // 以下の処理で、角度制御が有効になった時に
+    // 急激な目標値が発生して機体が不安定になるのを防止する
+    Aileron_center  = Roll_angle_command;
+    Elevator_center = Pitch_angle_command;
+    Roll_angle_offset   = 0;
+    Pitch_angle_offset = 0;
+    /////////////////////////////////////
+}
 
 void angle_control(void)
 {
@@ -664,41 +636,18 @@ void angle_control(void)
 
   if (Control_mode == RATECONTROL) return;
 
-  //USBSerial.printf("On=%d Off=%d Flip=%d Counter=%d\r\n", BtnA_on_flag, BtnA_off_flag, Flip_flag, Flip_counter);
-
   //PID Control
   if ((Thrust_command/BATTERY_VOLTAGE < Motor_on_duty_threshold))//Angle_control_on_duty_threshold))
   {
     //Initialize
-    Roll_rate_reference=0.0f;
-    Pitch_rate_reference=0.0f;
-    phi_err = 0.0f;
-    theta_err = 0.0f;
-    alt_err = 0.0f;
-    phi_pid.reset();
-    theta_pid.reset();
-    phi_pid.set_error(Roll_angle_reference);
-    theta_pid.set_error(Pitch_angle_reference);
-    Flip_flag = 0;
-    Flip_counter = 0;
-
-    /////////////////////////////////////
-    // 以下の処理で、角度制御が有効になった時に
-    // 急激な目標値が発生して機体が不安定になるのを防止する
-    Aileron_center  = Roll_angle_command;
-    Elevator_center = Pitch_angle_command;
-
-    Roll_angle_offset   = 0;
-    Pitch_angle_offset = 0;
-    /////////////////////////////////////
+    reset_angle_control();
   }
   else
   {
     //Flip
     if (Flip_flag == 1)
     { 
-      #if 1
-      Led_color = 0xFF9933;
+      Led_color = FLIPCOLOR;
 
       //PID Reset
       phi_pid.reset();
@@ -751,7 +700,6 @@ void angle_control(void)
         Ahrs_reset_flag = 0;
       }
       Flip_counter++;
-      #endif  
     }
     else
     {
@@ -803,7 +751,6 @@ void init_pwm(void)
   ledcAttachPin(pwmRearRight, RearRight_motor);
 }
 
-
 uint8_t get_arming_button(void)
 {
   static int8_t chatta=0;
@@ -811,7 +758,8 @@ uint8_t get_arming_button(void)
   if( (int)Stick[BUTTON_ARM] == 1 )
   { 
     chatta++;
-    if(chatta>10){
+    if(chatta>10)
+    {
       chatta=10;
       state=1;
     }
@@ -824,7 +772,6 @@ uint8_t get_arming_button(void)
       chatta=-10;
       state=0;
     }
-    
   }
   return state;
 }
@@ -836,7 +783,8 @@ uint8_t get_flip_button(void)
   if( (int)Stick[BUTTON_FLIP] == 1 )
   { 
     chatta++;
-    if(chatta>10){
+    if(chatta>10)
+    {
       chatta=10;
       state=1;
     }
@@ -849,7 +797,6 @@ uint8_t get_flip_button(void)
       chatta=-10;
       state=0;
     }
-    
   }
   return state;
 }
