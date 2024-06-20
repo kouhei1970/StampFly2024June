@@ -527,8 +527,8 @@ void rate_control(void)
       if (Alt_flag == 1)
       {
         Thrust_command = (Thrust0 + z_dot_pid.update(z_dot_err, Interval_time))*BATTERY_VOLTAGE;
-        if (Thrust_command/BATTERY_VOLTAGE > Thrust0*1.2f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*1.2f;
-        if (Thrust_command/BATTERY_VOLTAGE < Thrust0*0.8f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*0.8f;
+        if (Thrust_command/BATTERY_VOLTAGE > Thrust0*1.1f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*1.1f;
+        if (Thrust_command/BATTERY_VOLTAGE < Thrust0*0.9f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*0.9f;
       }
 
       //Motor Control
