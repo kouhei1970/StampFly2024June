@@ -3,6 +3,7 @@
 //
 // Desigend by Kouhei Ito 2023~2024
 //
+// 2024-06-20 高度制御改良　段差対応
 
 #include "flight_control.hpp"
 #include "rc.hpp"
@@ -55,27 +56,27 @@ const float Yaw_rate_td = 0.01f;
 const float Yaw_rate_eta = 0.125f;
 
 //Angle control PID gain
-const float Rall_angle_kp = 8.0f;
+const float Rall_angle_kp = 8.0f;//8.0
 const float Rall_angle_ti = 4.0f;
 const float Rall_angle_td = 0.04f;
 const float Rall_angle_eta = 0.125f;
 
-const float Pitch_angle_kp = 8.0f;
+const float Pitch_angle_kp = 8.0f;//8.0
 const float Pitch_angle_ti = 4.0f;
 const float Pitch_angle_td = 0.04f;
 const float Pitch_angle_eta = 0.125f;
 
 //Altitude control PID gain
-const float alt_kp = 0.65f;
-const float alt_ti = 200.0f;
-const float alt_td = 0.0f;
+const float alt_kp = 0.65f;//0.65
+const float alt_ti = 200.0f;//200.0
+const float alt_td = 0.0f;//0.0
 const float alt_eta = 0.125f;
 const float alt_period = 0.0333;
 
-const float Thrust0_nominal = 0.63;
-const float z_dot_kp = 0.15f;
-const float z_dot_ti = 13.5f;
-const float z_dot_td = 0.005f;
+const float Thrust0_nominal = 0.63f;//0.65
+const float z_dot_kp = 0.15f;//0.15
+const float z_dot_ti = 13.5f;//13.5
+const float z_dot_td = 0.005f;//0.005
 const float z_dot_eta = 0.125f;
 
 //Times
@@ -167,7 +168,7 @@ float Z_dot_ref = 0.0f;
 
 //高度目標
 const float Alt_ref_min = 0.3;
-volatile float Alt_ref = 0.5;
+volatile float Alt_ref = Alt_ref_min;
 
 //Function declaration
 void init_pwm();
@@ -253,7 +254,8 @@ void loop_400Hz(void)
 
   //LED Drive
   led_drive();
-  
+  //if (Interval_time>0.006)USBSerial.printf("%9.6f\n\r", Interval_time);
+  //USBSerial.printf("Mode=%d Alt_flag=%d\n\r", Mode, Alt_flag);
   //Begin Mode select
   if (Mode == INIT_MODE)
   {
@@ -315,7 +317,7 @@ void loop_400Hz(void)
     Throttle_control_mode = 0;
     Thrust_filtered.reset();
   }
-
+  
   //// Telemetry
   //telemetry400();
   //telemetry();
@@ -387,6 +389,8 @@ void control_init(void)
   Duty_rl.set_parameter(0.003, Control_period);
   Duty_rr.set_parameter(0.003, Control_period);
 
+  Thrust_filtered.set_parameter(0.02, Control_period);
+
 }
 ///////////////////////////////////////////////////////////////////
 
@@ -432,6 +436,7 @@ void get_command(void)
       
       if (Altitude2 < Alt_ref) 
       {
+        //USBSerial.printf("Alt=%f Alt_ref=%f\n\r", Altitude2, Alt_ref);
         Thrust0 = Thrust_command / BATTERY_VOLTAGE;
         alt_pid.reset();
         z_dot_pid.reset();
@@ -473,7 +478,7 @@ void get_command(void)
 
   if (Control_mode == RATECONTROL)
   {
-    Roll_rate_reference = 240*PI/180*Roll_angle_command;
+    Roll_rate_reference  = 240*PI/180*Roll_angle_command;
     Pitch_rate_reference = 240*PI/180*Pitch_angle_command;
   }
 
@@ -522,6 +527,8 @@ void rate_control(void)
       if (Alt_flag == 1)
       {
         Thrust_command = (Thrust0 + z_dot_pid.update(z_dot_err, Interval_time))*BATTERY_VOLTAGE;
+        if (Thrust_command/BATTERY_VOLTAGE > Thrust0*1.2f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*1.2f;
+        if (Thrust_command/BATTERY_VOLTAGE < Thrust0*0.8f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*0.8f;
       }
 
       //Motor Control
@@ -610,6 +617,7 @@ void reset_angle_control(void)
     Pitch_rate_reference=0.0f;
     phi_pid.reset();
     theta_pid.reset();
+    //Alt_ref_filter.reset();
     phi_pid.set_error(Roll_angle_reference);
     theta_pid.set_error(Pitch_angle_reference);
     Flip_flag = 0;
@@ -662,27 +670,27 @@ void angle_control(void)
       if (Flip_counter < flip_delay)
       {
         Roll_rate_reference = 0.0f;
-        Thrust_command = T_flip*1.2;
+        Thrust_command = T_flip*1.2f;
       }
       else if (Flip_counter < (flip_step/4 + flip_delay))
       {
         Roll_rate_reference = Roll_rate_reference + domega;
-        Thrust_command = T_flip*1.05;
+        Thrust_command = T_flip*1.05f;
       }
       else if (Flip_counter < (2*flip_step/4 + flip_delay))
       {
         Roll_rate_reference = Roll_rate_reference + domega;
-        Thrust_command = T_flip*1.0;
+        Thrust_command = T_flip*1.0f;
       }
       else if (Flip_counter < (3*flip_step/4 + flip_delay))
       {
         Roll_rate_reference = Roll_rate_reference - domega;
-        Thrust_command = T_flip*1.0;
+        Thrust_command = T_flip*1.0f;
       }
       else if (Flip_counter < (flip_step + flip_delay))
       {
         Roll_rate_reference = Roll_rate_reference - domega;
-        Thrust_command = T_flip*1.4;
+        Thrust_command = T_flip*1.4f;
       }
       else if (Flip_counter < (flip_step + flip_delay + 120) )
       {
@@ -725,7 +733,7 @@ void angle_control(void)
       theta_err = Pitch_angle_reference - (Pitch_angle - Pitch_angle_offset);
       alt_err = Alt_ref - Altitude2;
 
-      //Altitude COntrol PID
+      //Altitude Control PID
       Roll_rate_reference = phi_pid.update(phi_err, Interval_time);
       Pitch_rate_reference = theta_pid.update(theta_err, Interval_time);
       if(Alt_flag==1)Z_dot_ref = alt_pid.update(alt_err, Interval_time);
