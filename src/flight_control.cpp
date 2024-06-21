@@ -314,7 +314,7 @@ void loop_400Hz(void)
     Alt_flag = 0;
     Alt_ref = Alt_ref_min;
     Stick_return_flag = 0;
-    Throttle_control_mode = 0;
+    //Throttle_control_mode = 0;
     Thrust_filtered.reset();
   }
   
@@ -411,7 +411,7 @@ void get_command(void)
 
   if (Throttle_control_mode == 0)
   {
-    //Manual
+    //Manual Throttle
     if(thlo<0.0)thlo = 0.0;
     if ( (0.2 > thlo) && (thlo > -0.2) )thlo = 0.0f ;//不感帯
     if (thlo>1.0f) thlo = 1.0f;
@@ -422,11 +422,11 @@ void get_command(void)
   }
   else if (Throttle_control_mode == 1)
   {
-    //Altitude Control
-    if(Alt_flag==0)
+    //Auto Throttle Altitude Control
+    if(Alt_flag == 0)
     {
+      //Manualで目標高度まではマニュアルで上げる
       stick_count = 0;
-      //Manual目標高度まではマニュアルで上げる
       if(thlo<0.0)thlo = 0.0;
       if ( (0.2 > thlo) && (thlo > -0.2) )thlo = 0.0f ;
       if (thlo>1.0f) thlo = 1.0f;
@@ -443,7 +443,7 @@ void get_command(void)
       }
       else Alt_flag = 1; 
     }
-    else
+    else if (Alt_flag == 1)
     {
       if(Stick_return_flag == 0)
       {
