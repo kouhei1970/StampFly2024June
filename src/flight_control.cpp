@@ -401,8 +401,8 @@ void get_command(void)
   float throttle_limit = 0.7;
 
   Control_mode = Stick[CONTROLMODE];
-  if ( (uint8_t)Stick[ALTCONTROLMODE] == 5)Throttle_control_mode = 0;
-  else if((uint8_t)Stick[ALTCONTROLMODE] == 4)Throttle_control_mode = 1;
+  if ( (uint8_t)Stick[ALTCONTROLMODE] == AUTO_ALT ) Throttle_control_mode = 0;
+  else if( (uint8_t)Stick[ALTCONTROLMODE] == MANUAL_ALT) Throttle_control_mode = 1;
   else Throttle_control_mode = 0;
 
   //Thrust control
@@ -458,7 +458,8 @@ void get_command(void)
       {
         if ( (-0.2 < thlo) && (thlo < 0.2) )thlo = 0.0f ;//不感帯
         Alt_ref = Alt_ref + thlo*0.001;
-        if(Alt_ref<0.05)Alt_ref=0.05;
+        if(Alt_ref > 1.8 ) Alt_ref = 1.8;
+        if(Alt_ref < 0.05) Alt_ref = 0.05;
       }
     } 
   }

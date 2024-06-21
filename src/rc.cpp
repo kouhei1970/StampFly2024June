@@ -57,7 +57,6 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *recv_data, int data_len)
     return;
   }
 
-
   d_int = (uint8_t*)&d_float;  
   d_int[0] = recv_data[3];
   d_int[1] = recv_data[4];
@@ -87,7 +86,9 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *recv_data, int data_len)
   Stick[BUTTON_FLIP] = recv_data[20];
   Stick[CONTROLMODE] = recv_data[21];
   Stick[ALTCONTROLMODE] = recv_data[22];
+  
   Stick[LOG] = 0.0;
+  //if (check_sum!=recv_data[23])USBSerial.printf("checksum=%03d recv_sum=%03d\n\r", check_sum, recv_data[23]); 
 
 #if 0
   USBSerial.printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f  %6.3f\n\r", 
