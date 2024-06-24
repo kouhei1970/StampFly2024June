@@ -4,6 +4,7 @@
 // Desigend by Kouhei Ito 2023~2024
 //
 // 2024-06-20 高度制御改良　段差対応
+// 2024-06-25 高度制御改良　上昇持続バグ修正
 
 #include "flight_control.hpp"
 #include "rc.hpp"
@@ -73,7 +74,7 @@ const float alt_td = 0.0f;//0.0
 const float alt_eta = 0.125f;
 const float alt_period = 0.0333;
 
-const float Thrust0_nominal = 0.63f;//0.65
+//const float Thrust0_nominal = 0.63f;//0.65
 const float z_dot_kp = 0.15f;//0.15
 const float z_dot_ti = 13.5f;//13.5
 const float z_dot_td = 0.005f;//0.005
@@ -131,7 +132,7 @@ int8_t BtnA_counter = 0;
 uint8_t BtnA_on_flag = 0;
 uint8_t BtnA_off_flag =1;
 volatile uint8_t Loop_flag = 0;
-volatile uint8_t Angle_control_flag = 0;
+//volatile uint8_t Angle_control_flag = 0;
 uint8_t Stick_return_flag = 0;
 uint8_t Throttle_control_mode = 0;
 
@@ -161,13 +162,13 @@ Filter Duty_rl;
 
 volatile float Thrust0=0.0;
 uint8_t Alt_flag = 0;
-float Alt_max = 0.5;
+//float Alt_max = 0.5;
 
 //速度目標Z
 float Z_dot_ref = 0.0f;
 
 //高度目標
-const float Alt_ref_min = 0.3;
+const float Alt_ref_min = 0.3f;
 volatile float Alt_ref = Alt_ref_min;
 
 //Function declaration
@@ -309,13 +310,14 @@ void loop_400Hz(void)
     //Parking
     motor_stop();
     OverG_flag = 0;
-    Angle_control_flag = 0;
+    //Angle_control_flag = 0;
     Thrust0 = 0.0;
     Alt_flag = 0;
     Alt_ref = Alt_ref_min;
     Stick_return_flag = 0;
     //Throttle_control_mode = 0;
     Thrust_filtered.reset();
+    EstimatedAltitude.reset();
   }
   
   //// Telemetry
@@ -413,9 +415,9 @@ void get_command(void)
   {
     //Manual Throttle
     if(thlo<0.0)thlo = 0.0;
-    if ( (0.2 > thlo) && (thlo > -0.2) )thlo = 0.0f ;//不感帯
     if (thlo>1.0f) thlo = 1.0f;
-    if (thlo<-1.0f) thlo =0.0f;
+    if ( (-0.2 < thlo) && (thlo < 0.2) )thlo = 0.0f ;//不感帯   
+    //if (thlo<-1.0f) thlo =0.0f;
     //Throttle curve conversion　スロットルカーブ補正
     th = (2.97f*thlo-4.94f*thlo*thlo+2.86f*thlo*thlo*thlo)*BATTERY_VOLTAGE;
     Thrust_command = Thrust_filtered.update(th, Interval_time);
@@ -427,17 +429,17 @@ void get_command(void)
     {
       //Manualで目標高度まではマニュアルで上げる
       stick_count = 0;
+      Alt_ref = Alt_ref_min;
       if(thlo<0.0)thlo = 0.0;
-      if ( (0.2 > thlo) && (thlo > -0.2) )thlo = 0.0f ;
       if (thlo>1.0f) thlo = 1.0f;
-      if (thlo<-1.0f) thlo =0.0f;
+      if ( (0.2 > thlo) && (thlo > -0.2) )thlo = 0.0f ;
       th = (2.97f*thlo-4.94f*thlo*thlo+2.86f*thlo*thlo*thlo)*BATTERY_VOLTAGE;
       Thrust_command = Thrust_filtered.update(th, Interval_time);
       
       if (Altitude2 < Alt_ref) 
       {
-        //USBSerial.printf("Alt=%f Alt_ref=%f\n\r", Altitude2, Alt_ref);
-        Thrust0 = Thrust_command / BATTERY_VOLTAGE;
+        //USBSerial.printf("Alt=%f Alt_ref=%f Thrust_command=%f\n\r", Altitude2, Alt_ref, Thrust_command);
+        Thrust0 = 0.7;//Thrust_command / BATTERY_VOLTAGE;
         alt_pid.reset();
         z_dot_pid.reset();
       }

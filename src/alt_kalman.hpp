@@ -64,6 +64,7 @@ class Alt_kalman
     Alt_kalman();
     void update(float z_sens, float accel, float h);
     void set_vel(float v);
+    void reset(void);
 
 };
 

@@ -124,7 +124,7 @@ void sensor_init()
   voltage_filter.set_parameter(0.005, 0.0025);
   
   uint16_t cnt=0;
-  while(cnt<3)
+  while(cnt<10)
   {
     if(ToF_bottom_data_ready_flag)
     {

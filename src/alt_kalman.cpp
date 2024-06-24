@@ -80,6 +80,17 @@ void Alt_kalman::set_vel(float v)
   velocity = v;
 }
 
+void Alt_kalman::reset(void)
+{
+  //P
+  p11=100.0, p12=0.0, p13=0.0;
+  p21=0.0, p22=100.0, p23=0.0;
+  p31=0.0, p32=0.0, p33=100.0;
+
+  Velocity=0.0, Altitude=0.0, Bias=0.0;   
+}
+
+
 void mat_times(Mat A, Mat B)
 {
 
