@@ -319,6 +319,10 @@ void loop_400Hz(void)
     //Throttle_control_mode = 0;
     Thrust_filtered.reset();
     EstimatedAltitude.reset();
+    Duty_fr.reset();
+    Duty_fl.reset();
+    Duty_rr.reset();
+    Duty_rl.reset();
   }
   
   //// Telemetry
