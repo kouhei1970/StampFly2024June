@@ -32,7 +32,6 @@ volatile float Mx,My,Mz,Mx0,My0,Mz0,Mx_ave,My_ave,Mz_ave;
 volatile float Altitude = 0.0f;
 volatile float Altitude2 = 0.0f;
 volatile float Alt_velocity = 0.0f;
-volatile uint8_t Alt_control_ok = 0;
 volatile float Az=0.0;
 volatile float Az_bias=0.0;
 int16_t deltaX,deltaY;
@@ -166,6 +165,7 @@ float sensor_read(void)
   static float sensor_time = 0.0f;
   static float old_alt_time = 0.0f;
   static uint8_t first_flag = 0;
+  static uint8_t preMode = 0;
   const uint8_t interval = 400/30+1;
   float old_sensor_time = 0.0;
   uint32_t st;
@@ -207,6 +207,16 @@ float sensor_read(void)
   Roll_rate_raw  =  gyro_y;
   Pitch_rate_raw =  gyro_x;
   Yaw_rate_raw   = -gyro_z;
+
+
+  if (Mode != preMode)//モードが遷移した時Static変数を初期化する。外れ値除去のバグ対策
+  {
+    first_flag = 0;
+    old_dist[0]= 0;
+    old_dist[1]= 0;
+    old_dist[2]= 0;
+    old_dist[3]= 0;
+  }
 
   if(Mode > AVERAGE_MODE)
   {
@@ -251,11 +261,11 @@ float sensor_read(void)
                 
         //外れ値処理
         deff = dist - old_dist[1];
-        if ( deff > 500 )
+        if ( deff > 1000 )
         {
           dist = old_dist[1] + (old_dist[1] - old_dist[2])/2;
         }
-        else if ( deff < -500 )
+        else if ( deff < -1000 )
         {
           dist = old_dist[1] + (old_dist[1] - old_dist[3])/2;
         }
@@ -272,28 +282,12 @@ float sensor_read(void)
 
     Altitude = alt_filter.update((float)dist/1000.0, Interval_time);
 
-    //Alt_control_ok = 1;
     if(first_flag == 1) EstimatedAltitude.update(Altitude, Az, Interval_time);
     else first_flag = 1;
     Altitude2 = EstimatedAltitude.Altitude;
     Alt_velocity = EstimatedAltitude.Velocity;
     Az_bias = EstimatedAltitude.Bias;
     //USBSerial.printf("Sens=%f Az=%f Altitude=%f Velocity=%f Bias=%f\n\r",Altitude, Az, Altitude2, Alt_velocity, Az_bias);
-
-    //float Roll_angle = Roll_angle;
-    //float tht = Pitch_angle;
-    //float Yaw_angle = Yaw_angle;
-    //float sRoll_angle = sin(Roll_angle);
-    //float cRoll = cos(Roll_angle);
-  // float stht = sin(tht);
-    //float cPitch = cos(Pitch_angle);
-    //float sYaw_angle = sin(Yaw_angle);
-    //float sYaw_angle = cos(Yaw_angle);
-
-    //float r33 =  cRoll*cPitch;
-    //Altitude2 = r33 * Altitude;
-    //EstimatedAltitude.update(Altitude2, r33*Accel_z_raw)
-
   }
 
   //Accel fail safe
@@ -314,49 +308,10 @@ float sensor_read(void)
     else Under_voltage_flag = 0;
     if ( Under_voltage_flag > UNDER_VOLTAGE_COUNT) Under_voltage_flag = UNDER_VOLTAGE_COUNT;
   }
-  /*
-  if (opt_interval > 0.1)
-  {
-    opt_interval = 0.0;
-    flow.readMotionCount(&deltaX, &deltaY);
-    USBSerial.printf("%f %d %d %f\r\n", Elapsed_time, deltaX, deltaY, Accel_z_raw);
-  }
-  */
+ 
+  preMode = Mode;//今のモードを記憶
 
   uint32_t et =micros();
   //USBSerial.printf("Sensor read %f %f %f\n\r", (mt-st)*1.0e-6, (et-mt)*1e-6, (et-st)*1.0e-6);
-
   return (et-st)*1.0e-6;
 }
-
-
-#if 0
-
-float range = 1.0f;
-
-float Roll_angle = 0.0f;
-float tht = 0.0f;
-float Yaw_angle = 0.0f;
-float sRoll_angle = sin(Roll_angle);
-float cRoll_angle = cos(Roll_angle);
-float stht = sin(tht);
-float ctht = cos(tht);
-float sYaw_angle = sin(Yaw_angle);
-float sYaw_angle = cos(Yaw_angle);
-
-float r11 =  ctht*cYaw_angle;
-float r12 =  sRoll_angle*stht*cYaw_angle - cRoll_angle*sYaw_angle;
-float r13 =  cRoll_angle*stht*cYaw_angle + sRoll_angle*sYaw_angle;
-
-float r21 =  ctht*sYaw_angle;
-float r22 =  sRoll_angle*stht*sYaw_angle + cRoll_angle*cYaw_angle;
-float r23 =  cRoll_angle*stht*sYaw_angle - sRoll_angle*cYaw_angle;
-
-float r31 = -stht;
-float r32 =  sRoll_angle*ctht;
-float r33 =  cRoll_angle*ctht;
-
-float x = r13*range;
-float y = r23*range;
-float z = r33*range;
-#endif

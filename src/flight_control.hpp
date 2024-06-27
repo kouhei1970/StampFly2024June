@@ -35,7 +35,7 @@ void set_duty_rr(float duty);
 void set_duty_rl(float duty);
 
 //グローバル変数
-extern uint8_t Mode;
+extern volatile uint8_t Mode;
 extern volatile uint8_t Loop_flag;
 extern float Control_period;
 extern volatile float Elapsed_time;

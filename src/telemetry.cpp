@@ -8,7 +8,7 @@
 uint8_t Telem_mode = 0;
 uint8_t Telem_cnt = 0;
 const uint8_t MAXINDEX=110;
-const uint8_t MININDEX=14;
+const uint8_t MININDEX=22;
 
 void telemetry_sequence(void);
 void telemetry_sequence400(void);
@@ -181,9 +181,12 @@ void make_telemetry_data400(uint8_t* senddata)
   senddata[0]=88;
   senddata[1]=88;
   index = 2;
+  
   data_set(senddata, Elapsed_time, &index);//1 Time
-  data_set(senddata, Accel_z_raw, &index); //2 Accel_z_raw
-  data_set(senddata, Accel_z, &index);     //3 Accel_z
+  data_set(senddata, Mode, &index);     //3 Accel_z
+  data_set(senddata, Alt_flag, &index); //2 Accel_z_raw
+  data_set(senddata, Altitude2, &index);
+  data_set(senddata, Alt_ref, &index);
 }
 
 void data_set(uint8_t* datalist, float value, uint8_t* index)

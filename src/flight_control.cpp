@@ -123,9 +123,9 @@ volatile float Elevator_center=0.0f, Aileron_center=0.0f, Rudder_center=0.0f;
 
 //Machine state & flag
 float Timevalue=0.0f;
-uint8_t Mode = INIT_MODE;
+volatile uint8_t Mode = INIT_MODE;
 uint8_t Control_mode = ANGLECONTROL;
-volatile uint8_t LockMode=0;
+//volatile uint8_t LockMode=0;
 float Motor_on_duty_threshold = 0.1f;
 float Angle_control_on_duty_threshold = 0.5f;
 int8_t BtnA_counter = 0;
@@ -211,7 +211,7 @@ void init_copter(void)
   //Initialize Serial communication
   USBSerial.begin(115200);
   delay(1500);
-  USBSerial.printf("Start StampS3FPV!\r\n");
+  USBSerial.printf("Start StampFly!\r\n");
   
   //Initialize PWM
   init_pwm();
@@ -256,7 +256,7 @@ void loop_400Hz(void)
   //LED Drive
   led_drive();
   //if (Interval_time>0.006)USBSerial.printf("%9.6f\n\r", Interval_time);
-  //USBSerial.printf("Mode=%d Alt_flag=%d\n\r", Mode, Alt_flag);
+  //USBSerial.printf("Mode=%d OverG=%d\n\r", Mode, OverG_flag);
   //Begin Mode select
   if (Mode == INIT_MODE)
   {
@@ -292,6 +292,7 @@ void loop_400Hz(void)
 
     //Judge Mode change
     if (judge_mode_change() == 1) Mode = PARKING_MODE;
+    if (OverG_flag == 1) Mode = PARKING_MODE;
     
     //Get command
     get_command();
@@ -321,7 +322,7 @@ void loop_400Hz(void)
   }
   
   //// Telemetry
-  //telemetry400();
+  telemetry400();
   //telemetry();
 
   uint32_t ce_time = micros();
@@ -333,20 +334,25 @@ uint8_t judge_mode_change(void)
 {
   //Ariming Button が押されて離されたかを確認
   uint8_t state;
+  static uint8_t chatter = 0;
   state = 0;
-  if(LockMode == 0)
+  if(chatter == 0)
   {
     if( get_arming_button()==1)
     {
-      LockMode = 1;
+      chatter = 1;
     }
   }
   else
   {
     if( get_arming_button()==0)
     {
-      LockMode = 0;
-      state = 1;
+      chatter ++;
+      if(chatter > 40)
+      {
+        chatter = 0;
+        state = 1;
+      }
     }
   }
   return state;
@@ -570,7 +576,7 @@ void rate_control(void)
         RearRight_motor_duty = 0.0;
         RearLeft_motor_duty = 0.0;
         motor_stop();
-        OverG_flag=0;
+        //OverG_flag=0;
         Mode = PARKING_MODE;
       }
     }

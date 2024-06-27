@@ -38,18 +38,17 @@ void led_drive(void)
   {
     if(Control_mode == ANGLECONTROL)
     {
-      if(Flip_flag==0)Led_color=0xffff00;
-      else Led_color = 0xFF9933;
+      if(Flip_flag==0)Led_color=YELLOW;//スタビライズモード・マニュアル飛行では黄色
+      else Led_color = 0xFF9933;//宙返りではオレンジ？
     }
-    else Led_color = 0xDC669B;
+    else Led_color = 0xDC669B;//アクロモード
 
-    if(Alt_flag == 1) Led_color = 0x331155;
+    if(Alt_flag == 1) Led_color = 0x331155;//高度制御モードではピンク
     if(Rc_err_flag == 1) Led_color = 0xff0000;
 
     if (Under_voltage_flag < UNDER_VOLTAGE_COUNT) {onboard_led1(Led_color, 1); onboard_led2(Led_color, 1);}
     else {onboard_led1(POWEROFFCOLOR, 1); onboard_led2(Led_color, 1);}
   }
-
   else if (Mode == PARKING_MODE)
   {
     if(Under_voltage_flag < UNDER_VOLTAGE_COUNT)
@@ -58,8 +57,8 @@ void led_drive(void)
       if(LedBlinkCounter==0){//<10
         if (Led_color2&0x800000)Led_color2 = (Led_color2<<1)|1;
         else Led_color2=Led_color2<<1; 
-
-        if (Under_voltage_flag < UNDER_VOLTAGE_COUNT) {onboard_led1(Led_color2, 1);onboard_led2(Led_color2, 1);}
+        onboard_led1(Led_color2, 1);onboard_led2(Led_color2, 1);
+        //if (Under_voltage_flag < UNDER_VOLTAGE_COUNT) {onboard_led1(Led_color2, 1);onboard_led2(Led_color2, 1);}
         //else onboard_led(POWEROFFCOLOR,1);
         LedBlinkCounter++;
       }
