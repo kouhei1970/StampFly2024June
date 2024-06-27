@@ -25,6 +25,8 @@
 #define MANUAL_ALT 4
 #define AUTO_ALT 5
 
+#define MAX_ALT (1.8)
+#define MIN_ALT (0.05)
 
 //グローバル関数の宣言
 void init_copter(void);

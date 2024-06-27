@@ -8,13 +8,13 @@
 uint8_t Telem_mode = 0;
 uint8_t Telem_cnt = 0;
 const uint8_t MAXINDEX=110;
-const uint8_t MININDEX=22;
+const uint8_t MININDEX=30;
 
 void telemetry_sequence(void);
-void telemetry_sequence400(void);
+void telemetry_sequence_fast(void);
 void make_telemetry_header_data(uint8_t* senddata);
 void make_telemetry_data(uint8_t* senddata);
-void make_telemetry_data400(uint8_t* senddata);
+void make_telemetry_data_fast(uint8_t* senddata);
 void data2log(uint8_t* data_list, float add_data, uint8_t index);
 void float2byte(float x, uint8_t* dst);
 void append_data(uint8_t* data , uint8_t* newdata, uint8_t index, uint8_t len);
@@ -142,7 +142,7 @@ void make_telemetry_data(uint8_t* senddata)
   data_set(senddata, Az_bias, &index);                                  //27 Az_bias
 }
 
-void telemetry400(void)
+void telemetry_fast(void)
 {
   uint8_t senddata[MAXINDEX]; 
 
@@ -155,23 +155,34 @@ void telemetry400(void)
     //Send !
     telemetry_send(senddata, sizeof(senddata));
   }  
+  //else if(Mode > AVERAGE_MODE)
+  //{
+  //  telemetry_sequence400();
+  //}
   else if(Mode > AVERAGE_MODE)
   {
-    telemetry_sequence400();
+    const uint8_t N=4;
+    //N回に一度送信
+    if (Telem_cnt == 0)telemetry_sequence_fast();
+    Telem_cnt++;
+    if (Telem_cnt>N-1)Telem_cnt = 0;
+    //telemetry_sequence();
   }
+
+
 }
 
-void telemetry_sequence400(void)
+void telemetry_sequence_fast(void)
 {
   uint8_t senddata[MAXINDEX]; 
 
-  make_telemetry_data400(senddata);
+  make_telemetry_data_fast(senddata);
   //Send !
   if(telemetry_send(senddata, MININDEX)==1)esp_led(0x110000, 1);//Telemetory Reciver OFF
   else esp_led(0x001100, 1);//Telemetory Reciver ON
 }
 
-void make_telemetry_data400(uint8_t* senddata)
+void make_telemetry_data_fast(uint8_t* senddata)
 {
   float d_float;
   uint8_t d_int[4];
@@ -185,6 +196,8 @@ void make_telemetry_data400(uint8_t* senddata)
   data_set(senddata, Elapsed_time, &index);//1 Time
   data_set(senddata, Mode, &index);     //3 Accel_z
   data_set(senddata, Alt_flag, &index); //2 Accel_z_raw
+  data_set(senddata, RawRange/1000.0, &index);
+  data_set(senddata, Altitude, &index);
   data_set(senddata, Altitude2, &index);
   data_set(senddata, Alt_ref, &index);
 }

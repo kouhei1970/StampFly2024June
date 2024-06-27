@@ -322,7 +322,7 @@ void loop_400Hz(void)
   }
   
   //// Telemetry
-  telemetry400();
+  telemetry_fast();
   //telemetry();
 
   uint32_t ce_time = micros();
@@ -466,11 +466,11 @@ void get_command(void)
       {
         if ( (-0.2 < thlo) && (thlo < 0.2) )thlo = 0.0f ;//不感帯
         Alt_ref = Alt_ref + thlo*0.001;
-        if(Alt_ref > 1.8 ) Alt_ref = 1.8;
-        if(Alt_ref < 0.05) Alt_ref = 0.05;
+        if(Alt_ref > MAX_ALT ) Alt_ref = MAX_ALT;
+        if(Alt_ref < MIN_ALT ) Alt_ref = MIN_ALT;
       }
     } 
-  }
+  } 
 
   Roll_angle_command = 0.4*Stick[AILERON];
   if (Roll_angle_command<-1.0f)Roll_angle_command = -1.0f;

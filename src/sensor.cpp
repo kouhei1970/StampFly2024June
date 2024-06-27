@@ -29,6 +29,8 @@ volatile float Accel_x_raw,Accel_y_raw,Accel_z_raw;
 volatile float Accel_x,Accel_y,Accel_z;
 volatile float Roll_rate_raw,Pitch_rate_raw,Yaw_rate_raw;
 volatile float Mx,My,Mz,Mx0,My0,Mz0,Mx_ave,My_ave,Mz_ave;
+volatile int16_t RawRange=0;
+volatile int16_t Range=0;
 volatile float Altitude = 0.0f;
 volatile float Altitude2 = 0.0f;
 volatile float Alt_velocity = 0.0f;
@@ -45,7 +47,7 @@ float Over_g=0.0f, Over_rate=0.0f;
 uint8_t OverG_flag = 0;
 volatile uint8_t Under_voltage_flag = 0;
 //volatile uint8_t ToF_bottom_data_ready_flag;
-volatile uint16_t Range=1000;
+//volatile uint16_t Range=1000;
 
 uint8_t scan_i2c()
 {
@@ -158,14 +160,14 @@ float sensor_read(void)
   float filterd_v;
   static float dp, dq, dr; 
   static uint16_t dcnt=0u;
-  static uint16_t dist=0;
   int16_t deff;
-  static uint16_t old_dist[4] = {0};
+  static int16_t old_range[4] = {0};
   static float alt_time = 0.0f;
   static float sensor_time = 0.0f;
   static float old_alt_time = 0.0f;
   static uint8_t first_flag = 0;
   static uint8_t preMode = 0;
+  static uint8_t outlier_counter = 0;
   const uint8_t interval = 400/30+1;
   float old_sensor_time = 0.0;
   uint32_t st;
@@ -212,10 +214,10 @@ float sensor_read(void)
   if (Mode != preMode)//モードが遷移した時Static変数を初期化する。外れ値除去のバグ対策
   {
     first_flag = 0;
-    old_dist[0]= 0;
-    old_dist[1]= 0;
-    old_dist[2]= 0;
-    old_dist[3]= 0;
+    old_range[0]= 0;
+    old_range[1]= 0;
+    old_range[2]= 0;
+    old_range[3]= 0;
   }
 
   if(Mode > AVERAGE_MODE)
@@ -256,31 +258,39 @@ float sensor_read(void)
         ToF_bottom_data_ready_flag = 0;
 
         //距離の値の更新
-        //old_dist[0] = dist;
-        dist=tof_bottom_get_range();
-                
+        //old_range[0] = dist;
+        RawRange = tof_bottom_get_range();
+        Range = RawRange;
+
         //外れ値処理
-        deff = dist - old_dist[1];
-        if ( deff > 1000 )
+        deff = Range - old_range[1];
+        if ( deff > 500 && outlier_counter < 2)
         {
-          dist = old_dist[1] + (old_dist[1] - old_dist[2])/2;
+          Range = old_range[1] + (old_range[1] - old_range[3])/2;
+          outlier_counter++;
         }
-        else if ( deff < -1000 )
+        else if ( deff < -500 && outlier_counter < 2)
         {
-          dist = old_dist[1] + (old_dist[1] - old_dist[3])/2;
+          Range = old_range[1] + (old_range[1] - old_range[3])/2;
+          outlier_counter++;
         }
+        //old_range[3] = old_range[2];
+        //old_range[2] = old_range[1];
+        //old_range[1] = Range;
         else
         {
-          old_dist[3] = old_dist[2];
-          old_dist[2] = old_dist[1];
-          old_dist[1] = dist;
+          outlier_counter = 0;
+          old_range[3] = old_range[2];
+          old_range[2] = old_range[1];
+          old_range[1] = Range;
         }
+        
         //USBSerial.printf("%9.6f, %9.6f, %9.6f, %9.6f, %9.6f\r\n",Elapsed_time,Altitude/1000.0,  Altitude2, Alt_velocity,-(Accel_z_raw - Accel_z_offset)*9.81/(-Accel_z_offset));
       }
     }
     else dcnt++;
 
-    Altitude = alt_filter.update((float)dist/1000.0, Interval_time);
+    Altitude = alt_filter.update((float)Range/1000.0, Interval_time);
 
     if(first_flag == 1) EstimatedAltitude.update(Altitude, Az, Interval_time);
     else first_flag = 1;

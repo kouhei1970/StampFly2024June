@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 void telemetry(void);
-void telemetry400(void);
+void telemetry_fast(void);
 
 
 #endif
