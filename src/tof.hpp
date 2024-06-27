@@ -12,9 +12,9 @@
 #define USER_A 0
 
 void tof_init(void);
-uint16_t tof_range_get(VL53LX_DEV dev);
+int16_t tof_range_get(VL53LX_DEV dev);
 void tof_test_ranging(VL53LX_DEV dev);
-uint16_t tof_bottom_get_range();
-uint16_t tof_front_get_range();
+int16_t tof_bottom_get_range();
+int16_t tof_front_get_range();
 
 #endif

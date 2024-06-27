@@ -161,7 +161,7 @@ void telemetry_fast(void)
   //}
   else if(Mode > AVERAGE_MODE)
   {
-    const uint8_t N=4;
+    const uint8_t N=8;
     //N回に一度送信
     if (Telem_cnt == 0)telemetry_sequence_fast();
     Telem_cnt++;

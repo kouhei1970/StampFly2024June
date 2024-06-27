@@ -322,7 +322,7 @@ void loop_400Hz(void)
   }
   
   //// Telemetry
-  telemetry_fast();
+  //telemetry_fast();
   //telemetry();
 
   uint32_t ce_time = micros();

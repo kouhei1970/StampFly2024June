@@ -218,6 +218,21 @@ float sensor_read(void)
     old_range[1]= 0;
     old_range[2]= 0;
     old_range[3]= 0;
+
+    raw_ax_filter.reset();
+    raw_ay_filter.reset();
+    raw_az_filter.reset();
+    raw_az_d_filter.reset();
+
+    raw_gx_filter.reset();
+    raw_gy_filter.reset();
+    raw_gz_filter.reset();
+
+    az_filter.reset();
+    alt_filter.reset();
+
+    acc_filter.reset();
+
   }
 
   if(Mode > AVERAGE_MODE)
@@ -260,7 +275,11 @@ float sensor_read(void)
         //距離の値の更新
         //old_range[0] = dist;
         RawRange = tof_bottom_get_range();
-        Range = RawRange;
+        //USBSerial.printf("%9.6f %d\n\r", Elapsed_time, RawRange);
+        if(RawRange>0.01)
+        {
+          Range = RawRange;
+        }
 
         //外れ値処理
         deff = Range - old_range[1];
