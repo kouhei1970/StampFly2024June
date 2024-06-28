@@ -22,8 +22,8 @@
 #define ANGLECONTROL 0
 #define RATECONTROL 1
 
-#define MANUAL_ALT 4
-#define AUTO_ALT 5
+#define AUTO_ALT 4
+#define MANUAL_ALT 5
 
 #define MAX_ALT (1.8)
 #define MIN_ALT (0.05)
@@ -115,5 +115,5 @@ extern float Z_dot_ref;
 extern uint8_t Control_mode;
 extern uint8_t Flip_flag;
 extern uint8_t Alt_flag;
-
+extern uint8_t Throttle_control_mode;
 #endif

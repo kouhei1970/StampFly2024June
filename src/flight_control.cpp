@@ -74,9 +74,8 @@ const float alt_td = 0.0f;//0.0
 const float alt_eta = 0.125f;
 const float alt_period = 0.0333;
 
-//const float Thrust0_nominal = 0.63f;//0.65
-const float z_dot_kp = 0.15f;//0.15
-const float z_dot_ti = 13.5f;//13.5
+const float z_dot_kp = 0.17f;//0.15
+const float z_dot_ti = 15.0f;//13.5
 const float z_dot_td = 0.005f;//0.005
 const float z_dot_eta = 0.125f;
 
@@ -168,8 +167,8 @@ uint8_t Alt_flag = 0;
 float Z_dot_ref = 0.0f;
 
 //高度目標
-const float Alt_ref_min = 0.3f;
-volatile float Alt_ref = Alt_ref_min;
+const float Alt_ref0 = 0.5f;
+volatile float Alt_ref = Alt_ref0;
 
 //Function declaration
 void init_pwm();
@@ -314,7 +313,7 @@ void loop_400Hz(void)
     //Angle_control_flag = 0;
     Thrust0 = 0.0;
     Alt_flag = 0;
-    Alt_ref = Alt_ref_min;
+    Alt_ref = Alt_ref0;
     Stick_return_flag = 0;
     //Throttle_control_mode = 0;
     Thrust_filtered.reset();
@@ -409,12 +408,15 @@ void control_init(void)
 void get_command(void)
 {
   static uint16_t stick_count;
+  static float auto_throttle = 0.0f;
+  static float old_alt = 0.0;
+  static uint8_t auto_takeoff_counter = 0;
   float th,thlo;
   float throttle_limit = 0.7;
 
   Control_mode = Stick[CONTROLMODE];
-  if ( (uint8_t)Stick[ALTCONTROLMODE] == AUTO_ALT ) Throttle_control_mode = 0;
-  else if( (uint8_t)Stick[ALTCONTROLMODE] == MANUAL_ALT) Throttle_control_mode = 1;
+  if ( (uint8_t)Stick[ALTCONTROLMODE] == AUTO_ALT ) Throttle_control_mode = 1;
+  else if( (uint8_t)Stick[ALTCONTROLMODE] == MANUAL_ALT) Throttle_control_mode = 0;
   else Throttle_control_mode = 0;
 
   //Thrust control
@@ -437,19 +439,34 @@ void get_command(void)
     //Auto Throttle Altitude Control
     if(Alt_flag == 0)
     {
+      //Auto Take Off
+      const uint8_t magic = 2;
+      if(auto_takeoff_counter<magic)
+      {
+        auto_throttle = auto_throttle + 0.002;
+        //if(auto_throttle>0.7)auto_throttle = 0.7;
+      }
+      if(old_alt < Altitude2) auto_takeoff_counter++;
+      else auto_takeoff_counter = 0;
+      if (auto_takeoff_counter > magic) auto_takeoff_counter = magic;
+      old_alt = Altitude2;
+
+      Thrust_command = Thrust_filtered.update(auto_throttle*BATTERY_VOLTAGE, Interval_time);
+
+      #if 0
       //Manualで目標高度まではマニュアルで上げる
       stick_count = 0;
-      Alt_ref = Alt_ref_min;
+      Alt_ref = Alt_ref0;
       if(thlo<0.0)thlo = 0.0;
       if (thlo>1.0f) thlo = 1.0f;
       if ( (0.2 > thlo) && (thlo > -0.2) )thlo = 0.0f ;
       th = (2.97f*thlo-4.94f*thlo*thlo+2.86f*thlo*thlo*thlo)*BATTERY_VOLTAGE;
       Thrust_command = Thrust_filtered.update(th, Interval_time);
-      
-      if (Altitude2 < Alt_ref) 
+      #endif
+      if (Altitude2 < Alt_ref*0.5) 
       {
         //USBSerial.printf("Alt=%f Alt_ref=%f Thrust_command=%f\n\r", Altitude2, Alt_ref, Thrust_command);
-        Thrust0 = 0.7;//Thrust_command / BATTERY_VOLTAGE;
+        Thrust0 = 0.69;//Thrust_command / BATTERY_VOLTAGE;
         alt_pid.reset();
         z_dot_pid.reset();
       }
@@ -457,6 +474,8 @@ void get_command(void)
     }
     else if (Alt_flag == 1)
     {
+      auto_throttle = 0.0;
+      auto_takeoff_counter = 0;
       if(Stick_return_flag == 0)
       {
         if ( (-0.2 < thlo) && (thlo < 0.2) )
