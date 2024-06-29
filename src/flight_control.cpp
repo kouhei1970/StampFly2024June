@@ -472,17 +472,6 @@ void get_command(void)
       old_alt = Altitude2;
 
       Thrust_command = Thrust_filtered.update(auto_throttle*BATTERY_VOLTAGE, Interval_time);
-
-      #if 0
-      //Manualで目標高度まではマニュアルで上げる
-      stick_count = 0;
-      Alt_ref = Alt_ref0;
-      if(thlo<0.0)thlo = 0.0;
-      if (thlo>1.0f) thlo = 1.0f;
-      if ( (0.2 > thlo) && (thlo > -0.2) )thlo = 0.0f ;
-      th = (2.97f*thlo-4.94f*thlo*thlo+2.86f*thlo*thlo*thlo)*BATTERY_VOLTAGE;
-      Thrust_command = Thrust_filtered.update(th, Interval_time);
-      #endif
       if (Altitude2 < Alt_ref*0.5) 
       {
         //USBSerial.printf("Alt=%f Alt_ref=%f Thrust_command=%f\n\r", Altitude2, Alt_ref, Thrust_command);
