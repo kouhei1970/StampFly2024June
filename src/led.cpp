@@ -34,6 +34,11 @@ void led_drive(void)
     onboard_led1(PERPLE, 1);
     onboard_led2(PERPLE, 1);
   }
+  else if (Mode == AUTO_LANDING_MODE)
+  {
+    onboard_led1(GREEN, 1);
+    onboard_led2(GREEN, 1);
+  }
   else if(Mode == FLIGHT_MODE)
   {
     if(Control_mode == ANGLECONTROL)

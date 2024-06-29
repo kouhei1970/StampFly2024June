@@ -211,7 +211,7 @@ float sensor_read(void)
   Yaw_rate_raw   = -gyro_z;
 
 
-  if (Mode != preMode)//モードが遷移した時Static変数を初期化する。外れ値除去のバグ対策
+  if ( (Mode == PARKING_MODE) && (Mode != preMode) )//モードが遷移した時Static変数を初期化する。外れ値除去のバグ対策
   {
     first_flag = 0;
     old_range[0]= 0;

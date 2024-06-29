@@ -134,6 +134,7 @@ volatile uint8_t Loop_flag = 0;
 //volatile uint8_t Angle_control_flag = 0;
 uint8_t Stick_return_flag = 0;
 uint8_t Throttle_control_mode = 0;
+uint8_t Landing_state=0;
 
 //for flip
 float FliRoll_rate_time = 2.0;
@@ -185,6 +186,7 @@ uint8_t get_arming_button(void);
 uint8_t get_flip_button(void);
 void reset_rate_control(void);
 void reset_angle_control(void);
+uint8_t auto_landing(void);
 
 //割り込み関数
 //Intrupt function
@@ -290,7 +292,7 @@ void loop_400Hz(void)
     Control_period = Interval_time;
 
     //Judge Mode change
-    if (judge_mode_change() == 1) Mode = PARKING_MODE;
+    if (judge_mode_change() == 1) Mode = AUTO_LANDING_MODE;
     if (OverG_flag == 1) Mode = PARKING_MODE;
     
     //Get command
@@ -315,13 +317,24 @@ void loop_400Hz(void)
     Alt_flag = 0;
     Alt_ref = Alt_ref0;
     Stick_return_flag = 0;
-    //Throttle_control_mode = 0;
+    Landing_state= 0;
     Thrust_filtered.reset();
     EstimatedAltitude.reset();
     Duty_fr.reset();
     Duty_fl.reset();
     Duty_rr.reset();
     Duty_rl.reset();
+  }
+  else if (Mode == AUTO_LANDING_MODE)
+  {
+    if (auto_landing()==1)Mode = PARKING_MODE;
+    if( judge_mode_change() == 1)Mode = PARKING_MODE;
+
+    //Angle Control
+    angle_control();
+
+    //Rate Control
+    rate_control();
   }
   
   //// Telemetry
@@ -519,6 +532,72 @@ void get_command(void)
   {
     Flip_flag = get_flip_button();
   }
+}
+
+uint8_t auto_landing(void)
+{
+  //Auto Landing
+  uint8_t flag;
+  static float auto_throttle;
+  static uint16_t counter = 0;
+  static float old_alt[10];
+
+  Alt_flag = 0;
+  if (Landing_state == 0) 
+  {
+    Landing_state = 1;
+    counter = 0;
+    old_alt[0] = 0.0;
+    old_alt[1] = 0.0;
+    old_alt[2] = 0.0;
+    old_alt[3] = 0.0;
+    old_alt[4] = 0.0;
+    auto_throttle = Thrust_command/BATTERY_VOLTAGE;
+    auto_throttle = auto_throttle*0.97;
+  }
+  if (old_alt[9]>=Altitude2)//もし降下しなかったら、スロットル更に下げる
+  {
+    auto_throttle = auto_throttle*0.9999;
+  }
+  if(Altitude2<0.05)//地面効果で降りなかった場合対策
+  {
+    auto_throttle = auto_throttle*0.99;
+  }  
+  if(Altitude2<0.035)
+  {
+    flag = 1;
+    Landing_state = 0;
+  }
+  else flag = 0;
+  
+  for (int i=1;i<10;i++)old_alt[i]=old_alt[i-1];
+  old_alt[0] = Altitude2;
+
+  Thrust_command = Thrust_filtered.update(auto_throttle*BATTERY_VOLTAGE, Interval_time);
+
+
+  //Get RPY command
+  Roll_angle_command = 0.4*Stick[AILERON];
+  if (Roll_angle_command<-1.0f)Roll_angle_command = -1.0f;
+  if (Roll_angle_command> 1.0f)Roll_angle_command =  1.0f;  
+  Pitch_angle_command = 0.4*Stick[ELEVATOR];
+  if (Pitch_angle_command<-1.0f)Pitch_angle_command = -1.0f;
+  if (Pitch_angle_command> 1.0f)Pitch_angle_command =  1.0f;  
+
+  Yaw_angle_command = Stick[RUDDER];
+  if (Yaw_angle_command<-1.0f)Yaw_angle_command = -1.0f;
+  if (Yaw_angle_command> 1.0f)Yaw_angle_command =  1.0f;  
+  //Yaw control
+  Yaw_rate_reference   = 2.0f * PI * (Yaw_angle_command - Rudder_center);
+
+  if (Control_mode == RATECONTROL)
+  {
+    Roll_rate_reference  = 240*PI/180*Roll_angle_command;
+    Pitch_rate_reference = 240*PI/180*Pitch_angle_command;
+  }
+
+  //USBSerial.printf("thro=%9.6f Alt=%9.6f state=%d flag=%d\r\n",auto_throttle, Altitude2, Landing_state, flag);
+  return flag;
 }
 
 void rate_control(void)
