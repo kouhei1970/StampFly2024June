@@ -439,7 +439,7 @@ void get_command(void)
 
   //Thrust control
   thlo = Stick[THROTTLE];
-  thlo = thlo/throttle_limit;
+  //thlo = thlo/throttle_limit;
 
   if (Throttle_control_mode == 0)
   {
@@ -447,9 +447,8 @@ void get_command(void)
     if(thlo<0.0)thlo = 0.0;
     if (thlo>1.0f) thlo = 1.0f;
     if ( (-0.2 < thlo) && (thlo < 0.2) )thlo = 0.0f ;//不感帯   
-    //if (thlo<-1.0f) thlo =0.0f;
     //Throttle curve conversion　スロットルカーブ補正
-    th = (2.97f*thlo-4.94f*thlo*thlo+2.86f*thlo*thlo*thlo)*BATTERY_VOLTAGE;
+    th = (4.13e-3 + 3.3f*thlo -5.44f*thlo*thlo +3.13f*thlo*thlo*thlo)*BATTERY_VOLTAGE;
     Thrust_command = Thrust_filtered.update(th, Interval_time);
   }
   else if (Throttle_control_mode == 1)
