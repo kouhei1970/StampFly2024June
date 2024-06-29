@@ -316,7 +316,6 @@ void loop_400Hz(void)
     //Parking
     motor_stop();
     OverG_flag = 0;
-    //Angle_control_flag = 0;
     Thrust0 = 0.0;
     Alt_flag = 0;
     Alt_ref = Alt_ref0;
