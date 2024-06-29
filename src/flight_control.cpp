@@ -293,6 +293,7 @@ void loop_400Hz(void)
 
     //Judge Mode change
     if (judge_mode_change() == 1) Mode = AUTO_LANDING_MODE;
+    if (rc_isconnected()==0) Mode = AUTO_LANDING_MODE;
     if (OverG_flag == 1) Mode = PARKING_MODE;
     
     //Get command
@@ -318,12 +319,14 @@ void loop_400Hz(void)
     Alt_ref = Alt_ref0;
     Stick_return_flag = 0;
     Landing_state= 0;
+    ahrs_reset();
     Thrust_filtered.reset();
     EstimatedAltitude.reset();
     Duty_fr.reset();
     Duty_fl.reset();
     Duty_rr.reset();
     Duty_rl.reset();
+
   }
   else if (Mode == AUTO_LANDING_MODE)
   {
@@ -607,8 +610,8 @@ void rate_control(void)
   float p_err, q_err, r_err, z_dot_err;
 
   //Control main
-  if(rc_isconnected())
-  {
+//  if(rc_isconnected())
+//  {
     if(Thrust_command/BATTERY_VOLTAGE < Motor_on_duty_threshold)
     { 
       reset_rate_control();
@@ -682,11 +685,11 @@ void rate_control(void)
         Mode = PARKING_MODE;
       }
     }
-  }
-  else
-  {
-    reset_rate_control();
-  }
+  //}
+  //else
+  //{
+  //  reset_rate_control();
+  //}
 }
 
 void reset_rate_control(void)
