@@ -5,6 +5,10 @@
 //
 // 2024-06-20 高度制御改良　段差対応
 // 2024-06-25 高度制御改良　上昇持続バグ修正
+// 2024-06-29 自動離陸追加
+// 2024-06-29 自動着陸追加
+// 2024-06-29 送信機OFFで自動着陸
+// 2024-06-29 着陸時、Madgwick Filter Off
 
 #include "flight_control.hpp"
 #include "rc.hpp"
@@ -609,87 +613,80 @@ void rate_control(void)
   float p_ref, q_ref, r_ref;
   float p_err, q_err, r_err, z_dot_err;
 
-  //Control main
-//  if(rc_isconnected())
-//  {
-    if(Thrust_command/BATTERY_VOLTAGE < Motor_on_duty_threshold)
-    { 
-      reset_rate_control();
-    }
-    else
-    {
-      //Control angle velocity
-      p_rate = Roll_rate;
-      q_rate = Pitch_rate;
-      r_rate = Yaw_rate;
+  //Rate Control
+  if(Thrust_command/BATTERY_VOLTAGE < Motor_on_duty_threshold)
+  { 
+    reset_rate_control();
+  }
+  else
+  {
+    //Control angle velocity
+    p_rate = Roll_rate;
+    q_rate = Pitch_rate;
+    r_rate = Yaw_rate;
 
-      //Get reference
-      p_ref = Roll_rate_reference;
-      q_ref = Pitch_rate_reference;
-      r_ref = Yaw_rate_reference;
+    //Get reference
+    p_ref = Roll_rate_reference;
+    q_ref = Pitch_rate_reference;
+    r_ref = Yaw_rate_reference;
 
-      //Error
-      p_err = p_ref - p_rate;
-      q_err = q_ref - q_rate;
-      r_err = r_ref - r_rate;
-      z_dot_err = Z_dot_ref - Alt_velocity;
-      
-      //Rate Control PID
-      Roll_rate_command = p_pid.update(p_err, Interval_time);
-      Pitch_rate_command = q_pid.update(q_err, Interval_time);
-      Yaw_rate_command = r_pid.update(r_err, Interval_time);
-      if (Alt_flag == 1)
-      {
-        Thrust_command = (Thrust0 + z_dot_pid.update(z_dot_err, Interval_time))*BATTERY_VOLTAGE;
-        if (Thrust_command/BATTERY_VOLTAGE > Thrust0*1.1f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*1.1f;
-        if (Thrust_command/BATTERY_VOLTAGE < Thrust0*0.9f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*0.9f;
-      }
-
-      //Motor Control
-      //正規化Duty
-      FrontRight_motor_duty = Duty_fr.update((Thrust_command +(-Roll_rate_command +Pitch_rate_command +Yaw_rate_command)*0.25f)/BATTERY_VOLTAGE, Interval_time);
-      FrontLeft_motor_duty  = Duty_fl.update((Thrust_command +( Roll_rate_command +Pitch_rate_command -Yaw_rate_command)*0.25f)/BATTERY_VOLTAGE, Interval_time);
-      RearRight_motor_duty  = Duty_rr.update((Thrust_command +(-Roll_rate_command -Pitch_rate_command -Yaw_rate_command)*0.25f)/BATTERY_VOLTAGE, Interval_time);
-      RearLeft_motor_duty   = Duty_rl.update((Thrust_command +( Roll_rate_command -Pitch_rate_command +Yaw_rate_command)*0.25f)/BATTERY_VOLTAGE, Interval_time);
+    //Error
+    p_err = p_ref - p_rate;
+    q_err = q_ref - q_rate;
+    r_err = r_ref - r_rate;
+    z_dot_err = Z_dot_ref - Alt_velocity;
     
-      const float minimum_duty=0.0f;
-      const float maximum_duty=0.95f;
-
-      if (FrontRight_motor_duty < minimum_duty) FrontRight_motor_duty = minimum_duty;
-      if (FrontRight_motor_duty > maximum_duty) FrontRight_motor_duty = maximum_duty;
-
-      if (FrontLeft_motor_duty < minimum_duty) FrontLeft_motor_duty = minimum_duty;
-      if (FrontLeft_motor_duty > maximum_duty) FrontLeft_motor_duty = maximum_duty;
-
-      if (RearRight_motor_duty < minimum_duty) RearRight_motor_duty = minimum_duty;
-      if (RearRight_motor_duty > maximum_duty) RearRight_motor_duty = maximum_duty;
-
-      if (RearLeft_motor_duty < minimum_duty) RearLeft_motor_duty = minimum_duty;
-      if (RearLeft_motor_duty > maximum_duty) RearLeft_motor_duty = maximum_duty;
-
-      //Duty set
-      if (OverG_flag==0){
-        set_duty_fr(FrontRight_motor_duty);
-        set_duty_fl(FrontLeft_motor_duty);
-        set_duty_rr(RearRight_motor_duty);
-        set_duty_rl(RearLeft_motor_duty);      
-      }
-      else 
-      {
-        FrontRight_motor_duty = 0.0;
-        FrontLeft_motor_duty = 0.0;
-        RearRight_motor_duty = 0.0;
-        RearLeft_motor_duty = 0.0;
-        motor_stop();
-        //OverG_flag=0;
-        Mode = PARKING_MODE;
-      }
+    //Rate Control PID
+    Roll_rate_command = p_pid.update(p_err, Interval_time);
+    Pitch_rate_command = q_pid.update(q_err, Interval_time);
+    Yaw_rate_command = r_pid.update(r_err, Interval_time);
+    if (Alt_flag == 1)
+    {
+      Thrust_command = (Thrust0 + z_dot_pid.update(z_dot_err, Interval_time))*BATTERY_VOLTAGE;
+      if (Thrust_command/BATTERY_VOLTAGE > Thrust0*1.1f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*1.1f;
+      if (Thrust_command/BATTERY_VOLTAGE < Thrust0*0.9f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*0.9f;
     }
-  //}
-  //else
-  //{
-  //  reset_rate_control();
-  //}
+
+    //Motor Control
+    //正規化Duty
+    FrontRight_motor_duty = Duty_fr.update((Thrust_command +(-Roll_rate_command +Pitch_rate_command +Yaw_rate_command)*0.25f)/BATTERY_VOLTAGE, Interval_time);
+    FrontLeft_motor_duty  = Duty_fl.update((Thrust_command +( Roll_rate_command +Pitch_rate_command -Yaw_rate_command)*0.25f)/BATTERY_VOLTAGE, Interval_time);
+    RearRight_motor_duty  = Duty_rr.update((Thrust_command +(-Roll_rate_command -Pitch_rate_command -Yaw_rate_command)*0.25f)/BATTERY_VOLTAGE, Interval_time);
+    RearLeft_motor_duty   = Duty_rl.update((Thrust_command +( Roll_rate_command -Pitch_rate_command +Yaw_rate_command)*0.25f)/BATTERY_VOLTAGE, Interval_time);
+  
+    const float minimum_duty=0.0f;
+    const float maximum_duty=0.95f;
+
+    if (FrontRight_motor_duty < minimum_duty) FrontRight_motor_duty = minimum_duty;
+    if (FrontRight_motor_duty > maximum_duty) FrontRight_motor_duty = maximum_duty;
+
+    if (FrontLeft_motor_duty < minimum_duty) FrontLeft_motor_duty = minimum_duty;
+    if (FrontLeft_motor_duty > maximum_duty) FrontLeft_motor_duty = maximum_duty;
+
+    if (RearRight_motor_duty < minimum_duty) RearRight_motor_duty = minimum_duty;
+    if (RearRight_motor_duty > maximum_duty) RearRight_motor_duty = maximum_duty;
+
+    if (RearLeft_motor_duty < minimum_duty) RearLeft_motor_duty = minimum_duty;
+    if (RearLeft_motor_duty > maximum_duty) RearLeft_motor_duty = maximum_duty;
+
+    //Duty set
+    if (OverG_flag==0){
+      set_duty_fr(FrontRight_motor_duty);
+      set_duty_fl(FrontLeft_motor_duty);
+      set_duty_rr(RearRight_motor_duty);
+      set_duty_rl(RearLeft_motor_duty);      
+    }
+    else 
+    {
+      FrontRight_motor_duty = 0.0;
+      FrontLeft_motor_duty = 0.0;
+      RearRight_motor_duty = 0.0;
+      RearLeft_motor_duty = 0.0;
+      motor_stop();
+      //OverG_flag=0;
+      Mode = PARKING_MODE;
+    }
+  }
 }
 
 void reset_rate_control(void)
