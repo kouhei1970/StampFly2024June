@@ -166,7 +166,6 @@ Filter Duty_rl;
 
 volatile float Thrust0=0.0;
 uint8_t Alt_flag = 0;
-//float Alt_max = 0.5;
 
 //速度目標Z
 float Z_dot_ref = 0.0f;
