@@ -229,7 +229,7 @@ uint8_t rc_isconnected(void)
 {
     bool status;
     Connect_flag++;
-    if (Connect_flag<10)status = 1;
+    if (Connect_flag<40)status = 1;
     else status = 0;
     //USBSerial.printf("%d \n\r", Connect_flag);
     return status;
