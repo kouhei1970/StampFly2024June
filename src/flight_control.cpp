@@ -344,7 +344,7 @@ void loop_400Hz(void)
   
   //// Telemetry
   //telemetry_fast();
-  //telemetry();
+  telemetry();
 
   uint32_t ce_time = micros();
   Dt_time = ce_time - cs_time;  
@@ -472,7 +472,7 @@ void get_command(void)
       if (Altitude2 < Alt_ref*0.5) 
       {
         //USBSerial.printf("Alt=%f Alt_ref=%f Thrust_command=%f\n\r", Altitude2, Alt_ref, Thrust_command);
-        Thrust0 = 0.69;//Thrust_command / BATTERY_VOLTAGE;
+        Thrust0 = -0.220f*Voltage + 1.51f;//0.69Thrust_command / BATTERY_VOLTAGE;
         alt_pid.reset();
         z_dot_pid.reset();
       }
@@ -493,6 +493,7 @@ void get_command(void)
       }
       else
       {
+        Thrust0 = -0.220f*Voltage + 1.51f;
         if ( (-0.2 < thlo) && (thlo < 0.2) )thlo = 0.0f ;//不感帯
         Alt_ref = Alt_ref + thlo*0.001;
         if(Alt_ref > MAX_ALT ) Alt_ref = MAX_ALT;
@@ -545,7 +546,7 @@ uint8_t auto_landing(void)
     old_alt[2] = 0.0;
     old_alt[3] = 0.0;
     old_alt[4] = 0.0;
-    auto_throttle = Thrust_command/BATTERY_VOLTAGE;
+    auto_throttle = Thrust0 = -0.220f*Voltage + 1.51f;//Thrust_command/BATTERY_VOLTAGE;
     auto_throttle = auto_throttle*0.97;
   }
   if (old_alt[9]>=Altitude2)//もし降下しなかったら、スロットル更に下げる
