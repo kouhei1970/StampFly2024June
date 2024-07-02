@@ -72,16 +72,19 @@ const float Pitch_angle_td = 0.04f;
 const float Pitch_angle_eta = 0.125f;
 
 //Altitude control PID gain
-const float alt_kp = 0.65f;//0.65
+const float alt_kp = 5.0f;//5.0
 const float alt_ti = 200.0f;//200.0
-const float alt_td = 0.0f;//0.0
+const float alt_td = 0.5f;//0.5
 const float alt_eta = 0.125f;
 const float alt_period = 0.0333;
 
-const float z_dot_kp = 0.17f;//0.15
-const float z_dot_ti = 15.0f;//13.5
-const float z_dot_td = 0.005f;//0.005
+const float z_dot_kp = 0.35f;//0.35
+const float z_dot_ti = 500.0f;//500.0
+const float z_dot_td = 0.15f;//0.15
 const float z_dot_eta = 0.125f;
+
+const float Duty_bias_up = 1.589f;//Altitude Control parameter
+const float Duty_bias_down = 1.578f;//Auto landing  parameter
 
 //Times
 volatile float Elapsed_time=0.0f;
@@ -461,7 +464,7 @@ void get_command(void)
       if(auto_takeoff_counter<magic)
       {
         auto_throttle = auto_throttle + 0.002;
-        //if(auto_throttle>0.7)auto_throttle = 0.7;
+        if(auto_throttle>(-0.246f*Voltage + Duty_bias_up)*1.1)auto_throttle = (-0.246f*Voltage + Duty_bias_up)*1.1;//1.578
       }
       if(old_alt < Altitude2) auto_takeoff_counter++;
       else auto_takeoff_counter = 0;
@@ -469,10 +472,10 @@ void get_command(void)
       old_alt = Altitude2;
 
       Thrust_command = Thrust_filtered.update(auto_throttle*BATTERY_VOLTAGE, Interval_time);
-      if (Altitude2 < Alt_ref*0.5) 
+      if (Altitude2 < Alt_ref*0.3) 
       {
         //USBSerial.printf("Alt=%f Alt_ref=%f Thrust_command=%f\n\r", Altitude2, Alt_ref, Thrust_command);
-        Thrust0 = -0.246f*Voltage + 1.61f;;//0.69Thrust_command / BATTERY_VOLTAGE;
+        Thrust0 = -0.246f*Voltage + Duty_bias_up;//0.69Thrust_command / BATTERY_VOLTAGE;
         alt_pid.reset();
         z_dot_pid.reset();
       }
@@ -493,7 +496,7 @@ void get_command(void)
       }
       else
       {
-        Thrust0 = -0.246f*Voltage + 1.61f;
+        Thrust0 = -0.246f*Voltage + Duty_bias_up;
         if ( (-0.2 < thlo) && (thlo < 0.2) )thlo = 0.0f ;//不感帯
         Alt_ref = Alt_ref + thlo*0.001;
         if(Alt_ref > MAX_ALT ) Alt_ref = MAX_ALT;
@@ -542,18 +545,18 @@ uint8_t auto_landing(void)
     Landing_state = 1;
     counter = 0;
     for (uint8_t i =0;i<10;i++)old_alt[i] = Altitude2;
-    auto_throttle = -0.246f*Voltage + 1.61f;//Thrust_command/BATTERY_VOLTAGE;
-    auto_throttle = auto_throttle*0.95;
+    Thrust0 = -0.246f*Voltage + Duty_bias_down;
+    //auto_throttle = auto_throttle*0.98;
   }
   if (old_alt[9]>=Altitude2)//もし降下しなかったら、スロットル更に下げる
   {
-    auto_throttle = auto_throttle*0.9999;
+    Thrust0 = Thrust0*0.9999;
   }
-  if(Altitude2<0.05)//地面効果で降りなかった場合対策
+  if(Altitude2 < 0.15)//地面効果で降りなかった場合対策
   {
-    auto_throttle = auto_throttle*0.99;
+    Thrust0 = Thrust0*0.999;
   }  
-  if(Altitude2<0.035)
+  if(Altitude2 < 0.1)
   {
     flag = 1;
     Landing_state = 0;
@@ -563,8 +566,7 @@ uint8_t auto_landing(void)
   for (int i=1;i<10;i++)old_alt[i]=old_alt[i-1];
   old_alt[0] = Altitude2;
 
-  Thrust_command = Thrust_filtered.update(auto_throttle*BATTERY_VOLTAGE, Interval_time);
-
+  //Thrust_command = Thrust_filtered.update(auto_throttle*BATTERY_VOLTAGE, Interval_time);
 
   //Get RPY command
   Roll_angle_command = 0.4*Stick[AILERON];
@@ -625,6 +627,13 @@ void rate_control(void)
     Yaw_rate_command = r_pid.update(r_err, Interval_time);
     if (Alt_flag == 1)
     {
+      Thrust_command = (Thrust0 + z_dot_pid.update(z_dot_err, Interval_time))*BATTERY_VOLTAGE;
+      if (Thrust_command/BATTERY_VOLTAGE > Thrust0*1.05f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*1.05f;
+      if (Thrust_command/BATTERY_VOLTAGE < Thrust0*0.95f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*0.95f;
+    }
+    else if (Mode == AUTO_LANDING_MODE)
+    {
+      z_dot_err = -0.15 - Alt_velocity;
       Thrust_command = (Thrust0 + z_dot_pid.update(z_dot_err, Interval_time))*BATTERY_VOLTAGE;
       if (Thrust_command/BATTERY_VOLTAGE > Thrust0*1.1f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*1.1f;
       if (Thrust_command/BATTERY_VOLTAGE < Thrust0*0.9f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*0.9f;
