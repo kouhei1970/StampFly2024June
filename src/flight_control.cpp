@@ -541,13 +541,9 @@ uint8_t auto_landing(void)
   {
     Landing_state = 1;
     counter = 0;
-    old_alt[0] = 0.0;
-    old_alt[1] = 0.0;
-    old_alt[2] = 0.0;
-    old_alt[3] = 0.0;
-    old_alt[4] = 0.0;
+    for (uint8_t i =0;i<10;i++)old_alt[i] = Altitude2;
     auto_throttle = -0.246f*Voltage + 1.61f;//Thrust_command/BATTERY_VOLTAGE;
-    auto_throttle = auto_throttle*0.97;
+    auto_throttle = auto_throttle*0.95;
   }
   if (old_alt[9]>=Altitude2)//もし降下しなかったら、スロットル更に下げる
   {
