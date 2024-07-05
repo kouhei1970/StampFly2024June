@@ -83,8 +83,8 @@ const float z_dot_ti = 500.0f;//500.0
 const float z_dot_td = 0.15f;//0.15
 const float z_dot_eta = 0.125f;
 
-const float Duty_bias_up = 1.589f;//Altitude Control parameter
-const float Duty_bias_down = 1.578f;//Auto landing  parameter
+const float Duty_bias_up = 1.581f;//Altitude Control parameter　Itolab 1.589 M5Stack 1.581
+const float Duty_bias_down = 1.578f;//Auto landing  parameter Itolab 1.578 M5Stack 1.578
 
 //Times
 volatile float Elapsed_time=0.0f;
@@ -130,6 +130,7 @@ volatile float Elevator_center=0.0f, Aileron_center=0.0f, Rudder_center=0.0f;
 //Machine state & flag
 float Timevalue=0.0f;
 volatile uint8_t Mode = INIT_MODE;
+volatile uint8_t OldMode = INIT_MODE;
 uint8_t Control_mode = ANGLECONTROL;
 //volatile uint8_t LockMode=0;
 float Motor_on_duty_threshold = 0.1f;
@@ -315,7 +316,7 @@ void loop_400Hz(void)
   {
     //Judge Mode change
     if( judge_mode_change() == 1)Mode = FLIGHT_MODE;
-    
+
     //Parking
     motor_stop();
     OverG_flag = 0;
@@ -324,14 +325,14 @@ void loop_400Hz(void)
     Alt_ref = Alt_ref0;
     Stick_return_flag = 0;
     Landing_state= 0;
-    ahrs_reset();
     Thrust_filtered.reset();
     EstimatedAltitude.reset();
     Duty_fr.reset();
     Duty_fl.reset();
     Duty_rr.reset();
     Duty_rl.reset();
-
+    if(Mode != OldMode)ahrs_reset();
+    
   }
   else if (Mode == AUTO_LANDING_MODE)
   {
@@ -351,6 +352,7 @@ void loop_400Hz(void)
 
   uint32_t ce_time = micros();
   Dt_time = ce_time - cs_time;  
+  OldMode = Mode;//Memory now mode
   //End of Loop_400Hz function
 }
 
