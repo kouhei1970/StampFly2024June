@@ -61,6 +61,7 @@ extern float Acc_norm;
 extern quat_t Quat;
 extern float Over_g, Over_rate;
 extern uint8_t OverG_flag;
+extern uint8_t Range0flag;
 extern volatile uint8_t Under_voltage_flag;
 extern volatile uint8_t ToF_bottom_data_ready_flag;
 extern volatile float Az;

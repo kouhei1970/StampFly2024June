@@ -72,15 +72,15 @@ const float Pitch_angle_td = 0.04f;
 const float Pitch_angle_eta = 0.125f;
 
 //Altitude control PID gain
-const float alt_kp = 5.0f;//5.0
-const float alt_ti = 200.0f;//200.0
-const float alt_td = 0.5f;//0.5
+const float alt_kp = 0.5f;//5.0//soso 0.5
+const float alt_ti = 10.0f;//200.0//soso 10.0
+const float alt_td = 0.5f;//0.5//soso 0.5
 const float alt_eta = 0.125f;
 const float alt_period = 0.0333;
 
-const float z_dot_kp = 0.35f;//0.35
-const float z_dot_ti = 500.0f;//500.0
-const float z_dot_td = 0.15f;//0.15
+const float z_dot_kp = 0.1f;//0.35//soso 0.1
+const float z_dot_ti = 0.95f;//500.0//soso 0.95
+const float z_dot_td = 0.08f;//0.15//1.0//soso 0.08
 const float z_dot_eta = 0.125f;
 
 const float Duty_bias_up = 1.581f;//Altitude Control parameter　Itolab 1.589 M5Stack 1.581
@@ -96,6 +96,7 @@ volatile uint32_t S_time=0,E_time=0,D_time=0,Dt_time=0;
 uint8_t AngleControlCounter=0;
 uint16_t RateControlCounter=0;
 uint16_t OffsetCounter=0;
+uint16_t Auto_takeoff_counter = 0;
 
 //Motor Duty 
 volatile float FrontRight_motor_duty=0.0f;
@@ -215,7 +216,9 @@ void init_copter(void)
   onboard_led1(WHITE, 1);
   onboard_led2(WHITE, 1);
   led_show();
- 
+  led_show();
+  led_show();
+
   //Initialize Serial communication
   USBSerial.begin(115200);
   delay(1500);
@@ -301,6 +304,8 @@ void loop_400Hz(void)
     //Judge Mode change
     if (judge_mode_change() == 1) Mode = AUTO_LANDING_MODE;
     if (rc_isconnected()==0) Mode = AUTO_LANDING_MODE;
+    if (Range0flag == 20) Mode = AUTO_LANDING_MODE;
+
     if (OverG_flag == 1) Mode = PARKING_MODE;
     
     //Get command
@@ -322,9 +327,11 @@ void loop_400Hz(void)
     OverG_flag = 0;
     Thrust0 = 0.0;
     Alt_flag = 0;
+    Range0flag = 0;
     Alt_ref = Alt_ref0;
     Stick_return_flag = 0;
     Landing_state= 0;
+    Auto_takeoff_counter = 0;
     Thrust_filtered.reset();
     EstimatedAltitude.reset();
     Duty_fr.reset();
@@ -347,8 +354,8 @@ void loop_400Hz(void)
   }
   
   //// Telemetry
-  //telemetry_fast();
-  telemetry();
+  telemetry_fast();
+  //telemetry();
 
   uint32_t ce_time = micros();
   Dt_time = ce_time - cs_time;  
@@ -423,17 +430,16 @@ void control_init(void)
   Duty_rl.set_parameter(0.003, Control_period);
   Duty_rr.set_parameter(0.003, Control_period);
 
-  Thrust_filtered.set_parameter(0.02, Control_period);
+  Thrust_filtered.set_parameter(0.01, Control_period);
 
 }
 ///////////////////////////////////////////////////////////////////
 
 void get_command(void)
 {
-  static uint16_t stick_count;
+  static uint16_t stick_count=0;
   static float auto_throttle = 0.0f;
   static float old_alt = 0.0;
-  static uint8_t auto_takeoff_counter = 0;
   float th,thlo;
   float throttle_limit = 0.7;
 
@@ -459,8 +465,36 @@ void get_command(void)
   else if (Throttle_control_mode == 1)
   {
     //Auto Throttle Altitude Control
+    #if 1
+    Alt_flag = 1;
+
+    Thrust0 = (float)Auto_takeoff_counter/1000.0;
+    if(Thrust0 > -0.246f*Voltage + Duty_bias_up) Thrust0 = -0.246f*Voltage + Duty_bias_up;
+    Auto_takeoff_counter ++;
+    Thrust_command = Thrust0 * BATTERY_VOLTAGE;
+    if(Stick_return_flag == 0)
+    {
+      if ( (-0.2 < thlo) && (thlo < 0.2) )
+      {
+        thlo = 0.0f ;//不感帯
+        stick_count++;
+        if(stick_count>10)Stick_return_flag = 1;
+      }
+    }
+    else
+    {
+      stick_count = 0;
+      //Thrust0 = -0.246f*Voltage + Duty_bias_up;
+      if ( (-0.2 < thlo) && (thlo < 0.2) )thlo = 0.0f ;//不感帯
+      Alt_ref = Alt_ref + thlo*0.001;
+      if(Alt_ref > ALT_REF_MAX ) Alt_ref = ALT_REF_MAX;
+      if(Alt_ref < ALT_REF_MIN ) Alt_ref = ALT_REF_MIN;
+    }
+
+    #else
     if(Alt_flag == 0)
     {
+      
       //Auto Take Off
       const uint8_t magic = 2;
       if(auto_takeoff_counter<magic)
@@ -474,7 +508,7 @@ void get_command(void)
       old_alt = Altitude2;
 
       Thrust_command = Thrust_filtered.update(auto_throttle*BATTERY_VOLTAGE, Interval_time);
-      if (Altitude2 < Alt_ref*0.3) 
+      if (Altitude2 < Alt_ref*0.7) 
       {
         //USBSerial.printf("Alt=%f Alt_ref=%f Thrust_command=%f\n\r", Altitude2, Alt_ref, Thrust_command);
         Thrust0 = -0.246f*Voltage + Duty_bias_up;//0.69Thrust_command / BATTERY_VOLTAGE;
@@ -487,24 +521,27 @@ void get_command(void)
     {
       auto_throttle = 0.0;
       auto_takeoff_counter = 0;
+      Thrust0 = -0.246f*Voltage + Duty_bias_up;
+
       if(Stick_return_flag == 0)
       {
         if ( (-0.2 < thlo) && (thlo < 0.2) )
         {
           thlo = 0.0f ;//不感帯
           stick_count++;
-          if(stick_count>200)Stick_return_flag = 1;
+          if(stick_count>10)Stick_return_flag = 1;
         }
       }
       else
       {
-        Thrust0 = -0.246f*Voltage + Duty_bias_up;
+        //Thrust0 = -0.246f*Voltage + Duty_bias_up;
         if ( (-0.2 < thlo) && (thlo < 0.2) )thlo = 0.0f ;//不感帯
         Alt_ref = Alt_ref + thlo*0.001;
         if(Alt_ref > MAX_ALT ) Alt_ref = MAX_ALT;
         if(Alt_ref < MIN_ALT ) Alt_ref = MIN_ALT;
       }
-    } 
+    }
+    #endif
   } 
 
   Roll_angle_command = 0.4*Stick[AILERON];
@@ -527,7 +564,7 @@ void get_command(void)
   }
 
   // flip button check
-  if (Flip_flag == 0 && Throttle_control_mode == 0)
+  if (Flip_flag == 0 /*&& Throttle_control_mode == 0*/)
   {
     Flip_flag = get_flip_button();
   }
@@ -621,24 +658,26 @@ void rate_control(void)
     p_err = p_ref - p_rate;
     q_err = q_ref - q_rate;
     r_err = r_ref - r_rate;
-    z_dot_err = Z_dot_ref - Alt_velocity;
     
     //Rate Control PID
     Roll_rate_command = p_pid.update(p_err, Interval_time);
     Pitch_rate_command = q_pid.update(q_err, Interval_time);
     Yaw_rate_command = r_pid.update(r_err, Interval_time);
-    if (Alt_flag == 1)
+    
+    //Altutude Control
+    if (Alt_flag == 1 && Flip_flag == 0)
     {
-      Thrust_command = (Thrust0 + z_dot_pid.update(z_dot_err, Interval_time))*BATTERY_VOLTAGE;
-      if (Thrust_command/BATTERY_VOLTAGE > Thrust0*1.05f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*1.05f;
-      if (Thrust_command/BATTERY_VOLTAGE < Thrust0*0.95f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*0.95f;
+      z_dot_err = Z_dot_ref - Alt_velocity;
+      Thrust_command = Thrust_filtered.update((Thrust0 + z_dot_pid.update(z_dot_err, Interval_time))*BATTERY_VOLTAGE, Interval_time);
+      if (Thrust_command/BATTERY_VOLTAGE > Thrust0*1.15f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*1.15f;
+      if (Thrust_command/BATTERY_VOLTAGE < Thrust0*0.85f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*0.85f;
     }
     else if (Mode == AUTO_LANDING_MODE)
     {
       z_dot_err = -0.15 - Alt_velocity;
-      Thrust_command = (Thrust0 + z_dot_pid.update(z_dot_err, Interval_time))*BATTERY_VOLTAGE;
-      if (Thrust_command/BATTERY_VOLTAGE > Thrust0*1.1f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*1.1f;
-      if (Thrust_command/BATTERY_VOLTAGE < Thrust0*0.9f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*0.9f;
+      Thrust_command = Thrust_filtered.update((Thrust0 + z_dot_pid.update(z_dot_err, Interval_time))*BATTERY_VOLTAGE, Interval_time);
+      //if (Thrust_command/BATTERY_VOLTAGE > Thrust0*1.1f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*1.1f;
+      //if (Thrust_command/BATTERY_VOLTAGE < Thrust0*0.9f ) Thrust_command = BATTERY_VOLTAGE*Thrust0*0.9f;
     }
 
     //Motor Control
@@ -769,7 +808,7 @@ void angle_control(void)
       //Flip
       Flip_time = 0.4;
       Pitch_rate_reference= 0.0;
-      domega = 0.00225f*8.0*PI/Flip_time/Flip_time;//25->22->23->225
+      domega = 0.00221f*8.0*PI/Flip_time/Flip_time;//25->22->23->225->222->221
       flip_delay = 150;
       flip_step = (uint16_t)(Flip_time/0.0025f);
       if (Flip_counter < flip_delay)
@@ -795,7 +834,7 @@ void angle_control(void)
       else if (Flip_counter < (flip_step + flip_delay))
       {
         Roll_rate_reference = Roll_rate_reference - domega;
-        Thrust_command = T_flip*1.4f;
+        Thrust_command = T_flip*1.3f;
       }
       else if (Flip_counter < (flip_step + flip_delay + 120) )
       {
@@ -805,7 +844,7 @@ void angle_control(void)
           ahrs_reset();
         }
         Roll_rate_reference = 0.0;
-        Thrust_command=T_flip*1.4;
+        Thrust_command=T_flip*1.3;
       }
       else
       {
@@ -841,7 +880,7 @@ void angle_control(void)
       //Altitude Control PID
       Roll_rate_reference = phi_pid.update(phi_err, Interval_time);
       Pitch_rate_reference = theta_pid.update(theta_err, Interval_time);
-      if(Alt_flag==1)Z_dot_ref = alt_pid.update(alt_err, Interval_time);
+      if(Alt_flag >=1 )Z_dot_ref = alt_pid.update(alt_err, Interval_time);
       
     } 
   }

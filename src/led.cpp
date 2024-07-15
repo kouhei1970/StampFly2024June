@@ -24,7 +24,7 @@ void led_init(void)
 
 void led_show(void)
 {
-  FastLED.show();
+  FastLED.show(32);
 }
 
 void led_drive(void)
@@ -49,7 +49,7 @@ void led_drive(void)
     else Led_color = 0xDC669B;//アクロモード
 
     if (Throttle_control_mode == 1) Led_color = 0xc71585; //高度制御初期
-    if (Alt_flag == 1) Led_color = 0x331155;//高度制御モードではピンク
+    if (Alt_flag >= 1) Led_color = 0x331155;//高度制御モードではピンク
     if (Rc_err_flag == 1) Led_color = 0xff0000;
 
     if (Under_voltage_flag < UNDER_VOLTAGE_COUNT) {onboard_led1(Led_color, 1); onboard_led2(Led_color, 1);}
@@ -82,7 +82,8 @@ void led_drive(void)
   }
 
   //LED show
-  FastLED.show();
+  led_show();
+  //FastLED.show(128);
 }
 
 void onboard_led1(CRGB p, uint8_t state)

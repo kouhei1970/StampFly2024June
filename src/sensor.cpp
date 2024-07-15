@@ -45,6 +45,7 @@ float Acc_norm=0.0f;
 //quat_t Quat;
 float Over_g=0.0f, Over_rate=0.0f;
 uint8_t OverG_flag = 0;
+uint8_t Range0flag = 0;
 volatile uint8_t Under_voltage_flag = 0;
 //volatile uint8_t ToF_bottom_data_ready_flag;
 //volatile uint16_t Range=1000;
@@ -149,7 +150,7 @@ void sensor_init()
 
   raw_az_d_filter.set_parameter(0.1, 0.0025);//alt158
   az_filter.set_parameter(0.1, 0.0025);//alt158
-  alt_filter.set_parameter(0.01, 0.0025);
+  alt_filter.set_parameter(0.005, 0.0025);
   
 }
 
@@ -275,6 +276,7 @@ float sensor_read(void)
         //距離の値の更新
         //old_range[0] = dist;
         RawRange = tof_bottom_get_range();
+
         //USBSerial.printf("%9.6f %d\n\r", Elapsed_time, RawRange);
         if(RawRange>0.01)
         {
@@ -310,10 +312,16 @@ float sensor_read(void)
     else dcnt++;
 
     Altitude = alt_filter.update((float)Range/1000.0, Interval_time);
-
     if(first_flag == 1) EstimatedAltitude.update(Altitude, Az, Interval_time);
     else first_flag = 1;
     Altitude2 = EstimatedAltitude.Altitude;
+    //MAX_ALTを超えたら自動着陸
+    if(Altitude2 > ALT_LIMIT && Alt_flag >= 1 && Flip_flag == 0)Range0flag++;
+    else Range0flag = 0;
+    if(Range0flag > RNAGE0FLAG_MAX )Range0flag = RNAGE0FLAG_MAX;
+
+
+
     Alt_velocity = EstimatedAltitude.Velocity;
     Az_bias = EstimatedAltitude.Bias;
     //USBSerial.printf("Sens=%f Az=%f Altitude=%f Velocity=%f Bias=%f\n\r",Altitude, Az, Altitude2, Alt_velocity, Az_bias);

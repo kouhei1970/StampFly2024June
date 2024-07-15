@@ -27,8 +27,11 @@
 #define AUTO_ALT 4
 #define MANUAL_ALT 5
 
-#define MAX_ALT (1.8)
-#define MIN_ALT (0.05)
+#define ALT_LIMIT (2.0)
+#define ALT_REF_MIN (0.05)
+#define ALT_REF_MAX (1.8)
+
+#define RNAGE0FLAG_MAX (20)
 
 //グローバル関数の宣言
 void init_copter(void);
