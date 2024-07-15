@@ -9,6 +9,7 @@
 // 2024-06-29 自動着陸追加
 // 2024-06-29 送信機OFFで自動着陸
 // 2024-06-29 着陸時、Madgwick Filter Off
+// 2024-07-15 高度制御で宙返り可能に変更
 
 #include "flight_control.hpp"
 #include "rc.hpp"
