@@ -639,7 +639,7 @@ void rate_control(void)
   float p_err, q_err, r_err, z_dot_err;
 
   //Rate Control
-  if(Thrust_command/BATTERY_VOLTAGE < Motor_on_duty_threshold && Flip_flag == 0)
+  if((Thrust_command/BATTERY_VOLTAGE < Motor_on_duty_threshold) && (Flip_flag == 0))
   { 
     reset_rate_control();
   }
@@ -790,7 +790,7 @@ void angle_control(void)
   if (Control_mode == RATECONTROL) return;
 
   //PID Control
-  if ((Thrust_command/BATTERY_VOLTAGE < Motor_on_duty_threshold))//Angle_control_on_duty_threshold))
+  if ((Thrust_command/BATTERY_VOLTAGE < Motor_on_duty_threshold)&& (Flip_flag == 0))
   {
     //Initialize
     reset_angle_control();
@@ -820,17 +820,17 @@ void angle_control(void)
       else if (Flip_counter < (flip_step/4 + flip_delay))
       {
         Roll_rate_reference = Roll_rate_reference + domega;
-        Thrust_command = T_flip*0.4f;//1.05
+        Thrust_command = T_flip*0.2f;//1.05//0.4
       }
       else if (Flip_counter < (2*flip_step/4 + flip_delay))
       {
         Roll_rate_reference = Roll_rate_reference + domega;
-        Thrust_command = T_flip*0.2f;//1.0
+        Thrust_command = T_flip*0.1f;//1.0//0.2
       }
       else if (Flip_counter < (3*flip_step/4 + flip_delay))
       {
         Roll_rate_reference = Roll_rate_reference - domega;
-        Thrust_command = T_flip*0.2f;//1.0
+        Thrust_command = T_flip*0.1f;//1.0//0.2
       }
       else if (Flip_counter < (flip_step + flip_delay))
       {
