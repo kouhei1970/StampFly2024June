@@ -62,24 +62,24 @@ const float Yaw_rate_td = 0.01f;
 const float Yaw_rate_eta = 0.125f;
 
 //Angle control PID gain
-const float Rall_angle_kp = 8.0f;//8.0
+const float Rall_angle_kp = 7.0f;//8.0
 const float Rall_angle_ti = 4.0f;
 const float Rall_angle_td = 0.04f;
 const float Rall_angle_eta = 0.125f;
 
-const float Pitch_angle_kp = 8.0f;//8.0
+const float Pitch_angle_kp = 7.0f;//8.0
 const float Pitch_angle_ti = 4.0f;
 const float Pitch_angle_td = 0.04f;
 const float Pitch_angle_eta = 0.125f;
 
 //Altitude control PID gain
-const float alt_kp = 0.5f;//5.0//soso 0.5
+const float alt_kp = 0.35f;//5.0//soso 0.5
 const float alt_ti = 10.0f;//200.0//soso 10.0
 const float alt_td = 0.5f;//0.5//soso 0.5
 const float alt_eta = 0.125f;
 const float alt_period = 0.0333;
 
-const float z_dot_kp = 0.1f;//0.35//soso 0.1
+const float z_dot_kp = 0.08f;//0.35//soso 0.1
 const float z_dot_ti = 0.95f;//500.0//soso 0.95
 const float z_dot_td = 0.08f;//0.15//1.0//soso 0.08
 const float z_dot_eta = 0.125f;
@@ -196,6 +196,7 @@ uint8_t get_flip_button(void);
 void reset_rate_control(void);
 void reset_angle_control(void);
 uint8_t auto_landing(void);
+float get_trim_duty(float voltage);
 
 //割り込み関数
 //Intrupt function
@@ -305,7 +306,7 @@ void loop_400Hz(void)
     //Judge Mode change
     if (judge_mode_change() == 1) Mode = AUTO_LANDING_MODE;
     if (rc_isconnected()==0) Mode = AUTO_LANDING_MODE;
-    if (Range0flag == 20) Mode = AUTO_LANDING_MODE;
+    //if (Range0flag == 20) Mode = AUTO_LANDING_MODE;
 
     if (OverG_flag == 1) Mode = PARKING_MODE;
     
@@ -328,6 +329,11 @@ void loop_400Hz(void)
     OverG_flag = 0;
     Thrust0 = 0.0;
     Alt_flag = 0;
+    //flip reset
+    Roll_rate_reference = 0;
+    Ahrs_reset_flag = 0;
+    Flip_counter = 0;
+    Flip_flag = 0;
     Range0flag = 0;
     Alt_ref = Alt_ref0;
     Stick_return_flag = 0;
@@ -355,8 +361,8 @@ void loop_400Hz(void)
   }
   
   //// Telemetry
-  telemetry_fast();
-  //telemetry();
+  //telemetry_fast();
+  telemetry();
 
   uint32_t ce_time = micros();
   Dt_time = ce_time - cs_time;  
@@ -436,6 +442,11 @@ void control_init(void)
 }
 ///////////////////////////////////////////////////////////////////
 
+float get_trim_duty(float voltage)
+{
+  return -0.2448f * voltage + 1.5892f;
+}
+
 void get_command(void)
 {
   static uint16_t stick_count=0;
@@ -443,6 +454,7 @@ void get_command(void)
   static float old_alt = 0.0;
   float th,thlo;
   float throttle_limit = 0.7;
+  float thrust_max;
 
   Control_mode = Stick[CONTROLMODE];
   if ( (uint8_t)Stick[ALTCONTROLMODE] == AUTO_ALT ) Throttle_control_mode = 1;
@@ -466,83 +478,33 @@ void get_command(void)
   else if (Throttle_control_mode == 1)
   {
     //Auto Throttle Altitude Control
-    #if 1
     Alt_flag = 1;
-
-    Thrust0 = (float)Auto_takeoff_counter/1000.0;
-    if(Thrust0 > -0.246f*Voltage + Duty_bias_up) Thrust0 = -0.246f*Voltage + Duty_bias_up;
-    Auto_takeoff_counter ++;
+    if(Auto_takeoff_counter < 500)
+    {
+      Thrust0 = (float)Auto_takeoff_counter/1000.0;
+      if (Thrust0 > get_trim_duty(3.8)) Thrust0 = get_trim_duty(3.8);
+      Auto_takeoff_counter ++;
+    }
+    else if(Auto_takeoff_counter < 1000)
+    {
+      Thrust0 = (float)Auto_takeoff_counter/1000.0;
+      if (Thrust0 > get_trim_duty(Voltage)) Thrust0 = get_trim_duty(Voltage);
+      Auto_takeoff_counter ++;
+    }
+    else Thrust0 = get_trim_duty(Voltage);
     Thrust_command = Thrust0 * BATTERY_VOLTAGE;
-    if(Stick_return_flag == 0)
+    
+    //Get Altitude ref
+    if ( (-0.2 < thlo) && (thlo < 0.2) )thlo = 0.0f ;//不感帯
+    Alt_ref = Alt_ref + thlo*0.001;
+    if(Alt_ref > ALT_REF_MAX ) Alt_ref = ALT_REF_MAX;
+    if(Alt_ref < ALT_REF_MIN ) Alt_ref = ALT_REF_MIN;
+    if(Range0flag == RNAGE0FLAG_MAX)
     {
-      if ( (-0.2 < thlo) && (thlo < 0.2) )
-      {
-        thlo = 0.0f ;//不感帯
-        stick_count++;
-        if(stick_count>10)Stick_return_flag = 1;
-      }
+      Alt_ref = ALT_REF_MAX-0.15;
+      Range0flag = 0;
     }
-    else
-    {
-      stick_count = 0;
-      //Thrust0 = -0.246f*Voltage + Duty_bias_up;
-      if ( (-0.2 < thlo) && (thlo < 0.2) )thlo = 0.0f ;//不感帯
-      Alt_ref = Alt_ref + thlo*0.001;
-      if(Alt_ref > ALT_REF_MAX ) Alt_ref = ALT_REF_MAX;
-      if(Alt_ref < ALT_REF_MIN ) Alt_ref = ALT_REF_MIN;
-    }
-
-    #else
-    if(Alt_flag == 0)
-    {
-      
-      //Auto Take Off
-      const uint8_t magic = 2;
-      if(auto_takeoff_counter<magic)
-      {
-        auto_throttle = auto_throttle + 0.002;
-        if(auto_throttle>(-0.246f*Voltage + Duty_bias_up)*1.1)auto_throttle = (-0.246f*Voltage + Duty_bias_up)*1.1;//1.578
-      }
-      if(old_alt < Altitude2) auto_takeoff_counter++;
-      else auto_takeoff_counter = 0;
-      if (auto_takeoff_counter > magic) auto_takeoff_counter = magic;
-      old_alt = Altitude2;
-
-      Thrust_command = Thrust_filtered.update(auto_throttle*BATTERY_VOLTAGE, Interval_time);
-      if (Altitude2 < Alt_ref*0.7) 
-      {
-        //USBSerial.printf("Alt=%f Alt_ref=%f Thrust_command=%f\n\r", Altitude2, Alt_ref, Thrust_command);
-        Thrust0 = -0.246f*Voltage + Duty_bias_up;//0.69Thrust_command / BATTERY_VOLTAGE;
-        alt_pid.reset();
-        z_dot_pid.reset();
-      }
-      else Alt_flag = 1; 
-    }
-    else if (Alt_flag == 1)
-    {
-      auto_throttle = 0.0;
-      auto_takeoff_counter = 0;
-      Thrust0 = -0.246f*Voltage + Duty_bias_up;
-
-      if(Stick_return_flag == 0)
-      {
-        if ( (-0.2 < thlo) && (thlo < 0.2) )
-        {
-          thlo = 0.0f ;//不感帯
-          stick_count++;
-          if(stick_count>10)Stick_return_flag = 1;
-        }
-      }
-      else
-      {
-        //Thrust0 = -0.246f*Voltage + Duty_bias_up;
-        if ( (-0.2 < thlo) && (thlo < 0.2) )thlo = 0.0f ;//不感帯
-        Alt_ref = Alt_ref + thlo*0.001;
-        if(Alt_ref > MAX_ALT ) Alt_ref = MAX_ALT;
-        if(Alt_ref < MIN_ALT ) Alt_ref = MIN_ALT;
-      }
-    }
-    #endif
+    
   } 
 
   Roll_angle_command = 0.4*Stick[AILERON];
@@ -578,6 +540,7 @@ uint8_t auto_landing(void)
   static float auto_throttle;
   static uint16_t counter = 0;
   static float old_alt[10];
+  float thrust_max;
 
   Alt_flag = 0;
   if (Landing_state == 0) 
@@ -585,8 +548,7 @@ uint8_t auto_landing(void)
     Landing_state = 1;
     counter = 0;
     for (uint8_t i =0;i<10;i++)old_alt[i] = Altitude2;
-    Thrust0 = -0.246f*Voltage + Duty_bias_down;
-    //auto_throttle = auto_throttle*0.98;
+    Thrust0 = get_trim_duty(Voltage);
   }
   if (old_alt[9]>=Altitude2)//もし降下しなかったら、スロットル更に下げる
   {
@@ -809,33 +771,35 @@ void angle_control(void)
       //Flip
       Flip_time = 0.4;
       Pitch_rate_reference= 0.0;
-      domega = 0.00221f*8.0*PI/Flip_time/Flip_time;//25->22->23->225->222->221
+      domega = 0.00217f*8.0*PI/Flip_time/Flip_time;//25->22->23->225->222->221->220
       flip_delay = 150;
       flip_step = (uint16_t)(Flip_time/0.0025f);
+      T_flip = get_trim_duty(Voltage)*BATTERY_VOLTAGE;
+
       if (Flip_counter < flip_delay)
       {
         Roll_rate_reference = 0.0f;
-        Thrust_command = T_flip*1.3f;
+        Thrust_command = T_flip+0.16*BATTERY_VOLTAGE;
       }
       else if (Flip_counter < (flip_step/4 + flip_delay))
       {
         Roll_rate_reference = Roll_rate_reference + domega;
-        Thrust_command = T_flip*0.2f;//1.05//0.4
+        Thrust_command = T_flip*0.3f;//1.05//0.4
       }
       else if (Flip_counter < (2*flip_step/4 + flip_delay))
       {
         Roll_rate_reference = Roll_rate_reference + domega;
-        Thrust_command = T_flip*0.1f;//1.0//0.2
+        Thrust_command = T_flip*0.15f;//1.0//0.2
       }
       else if (Flip_counter < (3*flip_step/4 + flip_delay))
       {
         Roll_rate_reference = Roll_rate_reference - domega;
-        Thrust_command = T_flip*0.1f;//1.0//0.2
+        Thrust_command = T_flip*0.15f;//1.0//0.2
       }
       else if (Flip_counter < (flip_step + flip_delay))
       {
         Roll_rate_reference = Roll_rate_reference - domega;
-        Thrust_command = T_flip*1.25f;
+        Thrust_command = T_flip*1.0f;
       }
       else if (Flip_counter < (flip_step + flip_delay + 120) )
       {
@@ -845,7 +809,7 @@ void angle_control(void)
           ahrs_reset();
         }
         Roll_rate_reference = 0.0f;
-        Thrust_command=T_flip*1.25f;
+        Thrust_command=T_flip+0.16f*BATTERY_VOLTAGE;
       }
       else
       {
@@ -857,9 +821,8 @@ void angle_control(void)
     else
     {
       //flip reset
-      //Flip_flag = 1;
       Roll_rate_reference = 0;
-      T_flip = Thrust_command;
+      //T_flip = Thrust_command;
       Ahrs_reset_flag = 0;
       Flip_counter = 0;
 
@@ -932,24 +895,22 @@ uint8_t get_arming_button(void)
 uint8_t get_flip_button(void)
 {
   static int8_t chatta=0;
-  static uint8_t state=0;
+  uint8_t state;
+  
+  state = 0;
   if( (int)Stick[BUTTON_FLIP] == 1 )
   { 
     chatta++;
     if(chatta>10)
     {
-      chatta=10;
+      chatta=0;
       state=1;
     }
   }
   else
   {
-    chatta--;
-    if(chatta<-10)
-    {    
-      chatta=-10;
-      state=0;
-    }
+    chatta = 0;
+    state = 0;
   }
   return state;
 }
