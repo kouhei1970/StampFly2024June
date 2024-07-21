@@ -278,7 +278,7 @@ float sensor_read(void)
         RawRange = tof_bottom_get_range();
 
         //USBSerial.printf("%9.6f %d\n\r", Elapsed_time, RawRange);
-        if(RawRange>0.01)
+        if(RawRange>20)
         {
           Range = RawRange;
         }
@@ -316,7 +316,7 @@ float sensor_read(void)
     else first_flag = 1;
     Altitude2 = EstimatedAltitude.Altitude;
     //MAX_ALTを超えたら高度下げる（自動着陸）
-    if(Altitude2 > ALT_LIMIT && Alt_flag >= 1 && Flip_flag == 0)Range0flag++;
+    if((Altitude2 > ALT_LIMIT && Alt_flag >= 1 && Flip_flag == 0)||RawRange==0)Range0flag++;
     else Range0flag = 0;
     if(Range0flag > RNAGE0FLAG_MAX )Range0flag = RNAGE0FLAG_MAX;
     Alt_velocity = EstimatedAltitude.Velocity;
