@@ -739,6 +739,74 @@ void reset_angle_control(void)
     /////////////////////////////////////
 }
 
+void flip(void)
+{
+    float domega;
+    float flip_delay;
+    uint16_t flip_step;
+      Led_color = FLIPCOLOR;
+
+      //PID Reset
+      phi_pid.reset();
+      theta_pid.reset();
+    
+      //Flip
+      Flip_time = 0.4;
+      Pitch_rate_reference= 0.0;
+      domega = 0.00217f*8.0*PI/Flip_time/Flip_time;//25->22->23->225->222->221->220
+      flip_delay = 150;
+      flip_step = (uint16_t)(Flip_time/0.0025f);
+      T_flip = get_trim_duty(Voltage)*BATTERY_VOLTAGE;
+
+      if (Flip_counter < flip_delay)
+      {
+        Flip_flag = 1;
+        Roll_rate_reference = 0.0f;
+        Thrust_command = T_flip+0.16*BATTERY_VOLTAGE;
+      }
+      else if (Flip_counter < (flip_step/4 + flip_delay))
+      {
+        Flip_flag = 2;
+        Roll_rate_reference = Roll_rate_reference + domega;
+        Thrust_command = T_flip*0.3f;//1.05//0.4
+      }
+      else if (Flip_counter < (2*flip_step/4 + flip_delay))
+      {
+        Flip_flag = 3;
+        Roll_rate_reference = Roll_rate_reference + domega;
+        Thrust_command = T_flip*0.15f;//1.0//0.2
+      }
+      else if (Flip_counter < (3*flip_step/4 + flip_delay))
+      {
+        Flip_flag = 4;
+        Roll_rate_reference = Roll_rate_reference - domega;
+        Thrust_command = T_flip*0.15f;//1.0//0.2
+      }
+      else if (Flip_counter < (flip_step + flip_delay))
+      {
+        Flip_flag = 5;
+        Roll_rate_reference = Roll_rate_reference - domega;
+        Thrust_command = T_flip*1.0f;
+      }
+      else if (Flip_counter < (flip_step + flip_delay + 120) )
+      {
+        Flip_flag = 6;
+        if(Ahrs_reset_flag == 0) 
+        {
+          Ahrs_reset_flag = 1;
+          ahrs_reset();
+        }
+        Roll_rate_reference = 0.0f;
+        Thrust_command=T_flip+0.16f*BATTERY_VOLTAGE;
+      }
+      else
+      {
+        Flip_flag = 0;
+        Ahrs_reset_flag = 0;
+      }
+      Flip_counter++;
+}
+
 void angle_control(void)
 {
   float phi_err, theta_err, alt_err;
@@ -760,63 +828,9 @@ void angle_control(void)
   else
   {
     //Flip
-    if (Flip_flag == 1)
+    if (Flip_flag >= 1)
     { 
-      Led_color = FLIPCOLOR;
-
-      //PID Reset
-      phi_pid.reset();
-      theta_pid.reset();
-    
-      //Flip
-      Flip_time = 0.4;
-      Pitch_rate_reference= 0.0;
-      domega = 0.00217f*8.0*PI/Flip_time/Flip_time;//25->22->23->225->222->221->220
-      flip_delay = 150;
-      flip_step = (uint16_t)(Flip_time/0.0025f);
-      T_flip = get_trim_duty(Voltage)*BATTERY_VOLTAGE;
-
-      if (Flip_counter < flip_delay)
-      {
-        Roll_rate_reference = 0.0f;
-        Thrust_command = T_flip+0.16*BATTERY_VOLTAGE;
-      }
-      else if (Flip_counter < (flip_step/4 + flip_delay))
-      {
-        Roll_rate_reference = Roll_rate_reference + domega;
-        Thrust_command = T_flip*0.3f;//1.05//0.4
-      }
-      else if (Flip_counter < (2*flip_step/4 + flip_delay))
-      {
-        Roll_rate_reference = Roll_rate_reference + domega;
-        Thrust_command = T_flip*0.15f;//1.0//0.2
-      }
-      else if (Flip_counter < (3*flip_step/4 + flip_delay))
-      {
-        Roll_rate_reference = Roll_rate_reference - domega;
-        Thrust_command = T_flip*0.15f;//1.0//0.2
-      }
-      else if (Flip_counter < (flip_step + flip_delay))
-      {
-        Roll_rate_reference = Roll_rate_reference - domega;
-        Thrust_command = T_flip*1.0f;
-      }
-      else if (Flip_counter < (flip_step + flip_delay + 120) )
-      {
-        if(Ahrs_reset_flag == 0) 
-        {
-          Ahrs_reset_flag = 1;
-          ahrs_reset();
-        }
-        Roll_rate_reference = 0.0f;
-        Thrust_command=T_flip+0.16f*BATTERY_VOLTAGE;
-      }
-      else
-      {
-        Flip_flag = 0;
-        Ahrs_reset_flag = 0;
-      }
-      Flip_counter++;
+      flip();
     }
     else
     {
