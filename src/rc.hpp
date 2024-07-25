@@ -30,7 +30,7 @@
 
 //#define MINIJOYC
 
-#define CHANNEL 1
+#define CHANNEL 8
 
 #define RUDDER 0
 #define ELEVATOR 1

@@ -333,9 +333,9 @@ void loop_400Hz(void)
     if (judge_mode_change() == 1) Mode = AUTO_LANDING_MODE;
     if (rc_isconnected()==0) Mode = AUTO_LANDING_MODE;
     //if (Range0flag == 20) Mode = AUTO_LANDING_MODE;
-
     if (OverG_flag == 1) Mode = PARKING_MODE;
-    
+    if(Mode != OldMode)ahrs_reset(); 
+
     //Get command
     get_command();
 
