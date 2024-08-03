@@ -39,6 +39,7 @@
 
 #define PIN_LED_ONBORD 39
 #define PIN_LED_ESP    21
+#define PIN_LED_LINE 2
 #define NUM_LEDS   1
 
 extern uint32_t Led_color;
@@ -49,5 +50,8 @@ void led_drive(void);
 void onboard_led1(CRGB p, uint8_t state);
 void onboard_led2(CRGB p, uint8_t state);
 void esp_led(CRGB p, uint8_t state);
+void line_led(CRGB p, uint8_t state);
+void line_flight(CRGB p, uint8_t state);
+
 
 #endif
