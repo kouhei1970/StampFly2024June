@@ -70,12 +70,12 @@ float Control_period = 0.0025f;//400Hz
 
 //PID Gain
 //Rate control PID gain
-const float Roll_rate_kp = 0.75f;//0.6
+const float Roll_rate_kp = 0.75f;//0.75
 const float Roll_rate_ti = 0.7f;
 const float Roll_rate_td = 0.025;//0.01
 const float Roll_rate_eta = 0.125f;
 
-const float Pitch_rate_kp = 0.75f;
+const float Pitch_rate_kp = 1.0f;//0.75
 const float Pitch_rate_ti = 0.7f;
 const float Pitch_rate_td = 0.025f;
 const float Pitch_rate_eta = 0.125f;
@@ -223,6 +223,7 @@ void reset_angle_control(void);
 uint8_t auto_landing(void);
 float get_trim_duty(float voltage);
 void flip(void);
+float get_rate_ref(float x);
 
 //割り込み関数
 //Intrupt function
@@ -603,6 +604,26 @@ float get_trim_duty(float voltage)
   return -0.2448f * voltage + 1.5892f;
 }
 
+float get_rate_ref(float x)
+{
+  float ref;
+  float h;
+  if (x < -1.0f) x = -1.0f;
+  if (x >  1.0f) x =  1.0f;
+  if (x >= 0.0f)
+  {
+    h = x * (x * x * x * x * x * RATE_EXPO + x * (1 - RATE_EXPO));
+    ref  = PI/180.0f * ((RATE_MAX - RATE_RATE)* h + RATE_RATE * x);
+  }
+  else
+  {
+    x = -x;
+    h = x * (x * x * x * x * x * RATE_EXPO + x * (1 - RATE_EXPO));
+    ref  = - PI/180.0f * ((RATE_MAX - RATE_RATE)* h + RATE_RATE * x);
+  }
+  return ref;
+}
+
 void get_command(void)
 {
   static uint16_t stick_count=0;
@@ -627,8 +648,6 @@ void get_command(void)
     if(thlo<0.0)thlo = 0.0;
     if (thlo>1.0f) thlo = 1.0f;
     if ( (-0.2 < thlo) && (thlo < 0.2) )thlo = 0.0f ;//不感帯   
-    //Throttle curve conversion　スロットルカーブ補正
-    //th = (4.13e-3 + 3.3f*thlo -5.44f*thlo*thlo +3.13f*thlo*thlo*thlo)*BATTERY_VOLTAGE;
     th = (get_trim_duty(Voltage)+(thlo-0.4))*BATTERY_VOLTAGE;
     if(th<0)th=0.0f;
     Thrust_command = Thrust_filtered.update(th, Interval_time);
@@ -675,15 +694,9 @@ void get_command(void)
   }
   else if (Control_mode == RATECONTROL)
   {
-    Roll_rate_reference = 0.1 * Stick[AILERON];
-    if (Roll_rate_reference < -1.0f) Roll_rate_reference = -1.0f;
-    if (Roll_rate_reference >  1.0f) Roll_rate_reference =  1.0f;  
-    Roll_rate_reference  = RATE_LIMIT * PI/180 * Roll_rate_reference;
-    
-    Pitch_rate_reference = 0.1 * Stick[ELEVATOR];
-    if (Pitch_rate_reference < -1.0f) Pitch_rate_reference = -1.0f;
-    if (Pitch_rate_reference >  1.0f) Pitch_rate_reference =  1.0f;      
-    Pitch_rate_reference = RATE_LIMIT * PI/180 * Pitch_rate_reference;
+    Roll_rate_reference = get_rate_ref(Stick[AILERON]);
+    Pitch_rate_reference = get_rate_ref(Stick[ELEVATOR]);
+    //USBSerial.printf("%9.6f\n\r", Pitch_rate_reference*180.0f/PI);
   }
 
   Yaw_angle_command = Stick[RUDDER];
@@ -754,8 +767,8 @@ uint8_t auto_landing(void)
 
   if (Control_mode == RATECONTROL)
   {
-    Roll_rate_reference  = RATE_LIMIT*PI/180*Roll_angle_command;
-    Pitch_rate_reference = RATE_LIMIT*PI/180*Pitch_angle_command;
+    Roll_rate_reference = get_rate_ref(Stick[AILERON]);
+    Pitch_rate_reference = get_rate_ref(Stick[ELEVATOR]);
   }
 
   //USBSerial.printf("thro=%9.6f Alt=%9.6f state=%d flag=%d\r\n",auto_throttle, Altitude2, Landing_state, flag);
