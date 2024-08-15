@@ -40,7 +40,7 @@
 ### 電池切れサイン
 - LEDの色が水色になったら電池切れサインです。もうしばらくは飛べますが、続けるとリセットがかかり落下します。電池を充電しましょう
 ### 宙返り
-- 空中に静止したホバリング状態を維持して、右のスティックを押し込むと自動的に宙返りをします
+- 空中に静止したホバリング状態を維持して、ロールピッチのスティックを押し込むと自動的に宙返りをします
 ### アクロモード
 - ATOMJoyの前方にある右ボタンを一度押すとアクロモードに切り替わります。もう一度押すとスタビライずモードに戻ります。ATOMJoyの液晶画面でモードは確認できます。
 - アクロモードは姿勢を自動的に維持しません。自分で姿勢を保つように操縦します
@@ -62,26 +62,30 @@
 ### 衝撃停止機能
 - 大きな衝撃が加わると自動的にモータが停止します
 
+### テレメトリ機能
+Atom JoyStickのATOMS3のUSB-CポートにPCからケーブルを接続すると、Joyのスイッチを入れなくても給電され動作します。その際にPC側でお好きなシリアル通信端末（例えばPlatformIOのシリアルモニタ）を開くと機体の各種情報がリアルタイムに流れます。これを保存することでログが取れます。
+
+
 # StampFly Operation Manual
 
 ## For Safe Operation
 ### Battery Management
 - Please use a dedicated charger for charging.
-- If the battery swells, submerge it in salt water for about a week to completely discharge it before consulting your local municipality for disposal instructions.
-- Be cautious when inserting the battery into the StampFly, as incorrect insertion may cause circuit damage or battery fire.
+- If the battery swells, submerge it in salt water for about a week to completely discharge it, and then consult your local municipality for disposal instructions.
+- Be cautious when inserting the battery into StampFly, as incorrect insertion may cause circuit damage or a battery fire.
 
 ### Wearing Safety Glasses
 - When looking into the propeller or if the propeller is loose and prone to detachment, please wear safety glasses to prevent potential eye injuries, which could result in blindness.
 
 ## How to Use
 ### Inserting the Battery
-- Insert the battery into both the ATOMJoy and StampFly.
+- Insert the battery into both ATOMJoy and StampFly.
 - Ensure the connectors match the male and female terminals before inserting.
-- When attaching the battery to the StampFly, be careful not to misalign the battery adapter with the terminal, as this may cause the adapter to emit smoke, scorch, or possibly ignite.
+- When attaching the battery to StampFly, be careful not to misalign the battery adapter with the terminal, as this may cause the adapter to emit smoke, scorch, or possibly ignite.
 
 ### Peering (Pairing)
 When flying for the first time, perform pairing.
-- Press the LCD panel on the ATOMJoy while turning on the switch.
+- Press the LCD panel on ATOMJoy while turning on the switch.
 - Press the LCD panel again.
 - Connect the battery to StampFly or reset it.
 - Pairing is complete when the display on the LCD panel of ATOMJoy changes.
@@ -110,16 +114,16 @@ When flying for the first time, perform pairing.
 - When the LED turns cyan, it indicates low battery. You can still fly for a while, but continuing may cause a reset and result in a crash. It's time to recharge the battery.
 
 ### Flip Maneuver
-- When hovering in a stationary position, pressing the right stick will automatically perform a flip.
+- When hovering in a stationary position, pressing the roll/pitch stick will automatically perform a flip.
 
 ### Acro Mode
-- Pressing the right button on the front of the ATOMJoy switches to Acro Mode. Press it again to return to Stabilize Mode. You can check the mode on the ATOMJoy's LCD screen.
+- Pressing the right button on the front of ATOMJoy switches to Acro Mode. Press it again to return to Stabilize Mode. You can check the mode on ATOMJoy's LCD screen.
 - Acro Mode does not automatically maintain posture. You must control it manually.
 - The device rotates at a speed corresponding to how much you push the throttle stick. Returning the stick to neutral stops the rotation, but the tilt remains, so you need to correct it manually.
 
 ### Altitude Hold Mode (In Development)
 - StampFly is always in development, and altitude control is not yet complete.
-- When the device is on the ground, pressing the left button on the front of the ATOMJoy once will activate Altitude Hold Mode.
+- When the device is on the ground, pressing the left button on the front of ATOMJoy once will activate Altitude Hold Mode.
 - In Altitude Hold Mode, pressing the throttle lever to Arm will automatically take off and rise to an altitude of 50 cm. The LED turns pink to indicate Altitude Hold Mode.
 - You can gradually change the height by moving the throttle stick up or down.
 - Altitude Hold Mode changes height slowly and cannot make quick altitude adjustments.
@@ -130,8 +134,12 @@ When flying for the first time, perform pairing.
 
 ### Mode 3
 - This is the developer's favorite mode.
-- Holding the left button on the front of the ATOMJoy while turning on the switch will activate Mode 3. It cannot be changed until the switch is turned off.
+- Holding the left button on the front of ATOMJoy while turning on the switch will activate Mode 3. It cannot be changed until the switch is turned off.
 - Mode 3 reverses the left and right stick operations of Mode 2. However, the function of the front button does not change.
 
 ### Impact Stop Function
 - If a significant impact occurs, the motors will automatically stop.
+
+### Telemetry Function
+When you connect a cable from your PC to the USB-C port of the ATOMS3 on the Atom JoyStick, it will be powered and operate without needing to turn on the switch. During this time, if you open your preferred serial communication terminal on the PC (e.g., PlatformIO’s Serial Monitor), various real-time information about the device will be displayed. You can save this data to log it.
+
